@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+**/secrets/
+
+# Build output
+dist/
+build/
+coverage/
+**/dist/
+**/build/
+**/coverage/
+
+# TypeScript and tooling caches
+*.tsbuildinfo
+.eslintcache
+.cache/
+**/.cache/
+.vite/
+**/.vite/
+
+# Prisma generated/runtime artifacts
+node_modules/.prisma/
+**/node_modules/.prisma/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+debug.log
+
+# Local databases and runtime files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+tmp/
+temp/
+.tmp/
+**/tmp/
+**/temp/
+**/.tmp/
+
+# Test and automation artifacts
+test-results/
+playwright-report/
+blob-report/
+**/test-results/
+**/playwright-report/
+**/blob-report/
+
+# MCP / local demo runtime files
+.mcp-cache/
+context-vault-mcp/.mcp-cache/
+*.local.json
+*.runtime.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Package manager caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz

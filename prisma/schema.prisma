@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VersionSource {
+  manual
+  suggestion
+  github
+  mcp
+  cleanup
+}
+
+enum SuggestionSource {
+  manual
+  ai
+  github
+  mcp
+  cleanup
+}
+
+enum SuggestionStatus {
+  pending
+  applied
+  rejected
+}
+
+enum GitHubEventStatus {
+  received
+  processed
+  skipped
+  failed
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  projects     Project[]
+  apiKeys      ApiKey[]
+  mcpSessions  McpSession[]
+  githubConnections GitHubConnection[]
+}
+
+model Project {
+  id            String              @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  repoUrl       String?
+  defaultBranch String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context       ProjectContext?
+  versions      ContextVersion[]
+  suggestions   ContextSuggestion[]
+  mcpSessions   McpSession[]
+  githubConnection GitHubConnection?
+  githubEvents  GitHubEvent[]
+
+  @@index([userId])
+}
+
+model ProjectContext {
+  id                   String   @id @default(cuid())
+  projectId            String   @unique
+  goal                 String   @default("")
+  techStack            Json     @default("[]")
+  features             Json     @default("[]")
+  decisions            Json     @default("[]")
+  constraints          Json     @default("[]")
+  issues               Json     @default("[]")
+  dependencies         Json     @default("[]")
+  nextSteps            Json     @default("[]")
+  architectureNotes    Json     @default("[]")
+  aiInstructions       String   @default("")
+  currentVersionNumber Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ContextVersion {
+  id            String        @id @default(cuid())
+  projectId     String
+  versionNumber Int
+  snapshot      Json
+  versionTitle  String?
+  changeSummary String
+  changedSections Json?
+  changePreview  Json?
+  source        VersionSource
+  createdAt     DateTime      @default(now())
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, versionNumber])
+  @@index([projectId])
+}
+
+model ContextSuggestion {
+  id             String           @id @default(cuid())
+  projectId      String
+  title          String
+  source         SuggestionSource
+  suggestedPatch Json
+  reasoningSummary String?
+  confidence     String?
+  relatedGithubEventId String?    @unique
+  status         SuggestionStatus @default(pending)
+  createdAt      DateTime         @default(now())
+  appliedAt      DateTime?
+  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  relatedGithubEvent GitHubEvent? @relation(fields: [relatedGithubEventId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, status])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  keyPrefix  String
+  keyHash    String
+  scopes     Json      @default("[]")
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([keyHash])
+}
+
+model McpSession {
+  id         String    @id @default(cuid())
+  userId     String
+  projectId  String?
+  clientName String?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model GitHubConnection {
+  id                String        @id @default(cuid())
+  userId            String
+  projectId         String        @unique
+  repoOwner         String
+  repoName          String
+  repoUrl           String
+  defaultBranch     String
+  webhookSecretHash String?
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project           Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events            GitHubEvent[]
+
+  @@index([userId])
+  @@index([repoOwner, repoName, isActive])
+}
+
+model GitHubEvent {
+  id          String            @id @default(cuid())
+  projectId   String
+  connectionId String?
+  eventType   String
+  deliveryId  String?           @unique
+  action      String?
+  branch      String?
+  commitSha   String?
+  prNumber    Int?
+  title       String?
+  author      String?
+  rawMetadata Json
+  status      GitHubEventStatus @default(received)
+  errorMessage String?
+  createdAt   DateTime          @default(now())
+  processedAt DateTime?
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  connection  GitHubConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  suggestion  ContextSuggestion?
+
+  @@index([projectId, createdAt])
+  @@index([connectionId])
+}
