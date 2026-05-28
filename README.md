@@ -1,398 +1,313 @@
-# Context Vault Backend
+# Context Vault
 
-Persistent, account-based, versioned project context storage for AI-assisted development.
+Context Vault is a persistent project memory system for AI-assisted development.
 
-## Setup
+GitHub stores your code. Context Vault stores the project context an AI assistant needs to continue work accurately: goals, architecture notes, decisions, constraints, known issues, dependencies, next steps, and AI instructions.
 
-1. Install dependencies:
+The product has two main parts:
+
+- **Dashboard**: manage projects, review context, apply suggestions, inspect versions, connect GitHub, and create MCP API keys.
+- **MCP server**: lets AI tools such as Codex, Cursor, Claude Desktop, Claude Code, Windsurf, and MCP Inspector read the same project memory.
+
+Context Vault is review-first. AI tools, GitHub events, and MCP tools can create pending suggestions, but official project memory changes only when you apply a suggestion in the dashboard.
+
+## What It Solves
+
+AI coding sessions often lose important project knowledge when chats reset, tools change, or context windows fill up. Context Vault gives every supported AI client a shared, account-based source of truth for the project.
+
+Use it to:
+
+- Keep long-term project memory outside chat history.
+- Load the latest project context in any MCP-capable AI client.
+- Capture meaningful implementation work as reviewable suggestions.
+- Track immutable context versions over time.
+- Connect GitHub so commits and pull requests can create reviewable memory suggestions.
+- Avoid accidental auto-mutation of official project context.
+
+## Product Concepts
+
+**ProjectContext**
+
+The latest official memory for a project. It includes the project goal, tech stack, features, decisions, constraints, issues, dependencies, next steps, architecture notes, and AI instructions.
+
+**ContextSuggestion**
+
+A proposed update to project memory. Suggestions can come from the dashboard, MCP tools, GitHub events, or AI agents. Suggestions are pending until reviewed.
+
+**ContextVersion**
+
+An immutable snapshot created when official project context changes. Versions make it easy to inspect how project memory evolved.
+
+**MCP API Key**
+
+A scoped key used by AI clients to access Context Vault through the MCP server. Do not use your login JWT in MCP client configs.
+
+## Local Setup
+
+### 1. Install dependencies
 
 ```bash
 npm install
+cd frontend && npm install
+cd ../context-vault-mcp && npm install
+cd ..
 ```
 
-2. Create `.env` from `.env.example` and set `DATABASE_URL` plus a long `JWT_SECRET`.
+### 2. Configure the backend
 
-3. Run Prisma:
+Create `.env` from `.env.example` and set the required values:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/context_vault
+JWT_SECRET=replace_with_a_long_random_secret_at_least_32_chars
+FRONTEND_URL=http://localhost:5173
+BACKEND_PUBLIC_URL=http://localhost:4000
+```
+
+Optional GitHub App values:
+
+```env
+GITHUB_APP_NAME=context-vault
+GITHUB_APP_SLUG=your-github-app-slug
+GITHUB_APP_ID=your_app_id
+GITHUB_APP_PRIVATE_KEY_PATH=C:\path\to\github-app-private-key.pem
+GITHUB_APP_WEBHOOK_SECRET=your_webhook_secret
+```
+
+You can also use `GITHUB_APP_PRIVATE_KEY` with escaped `\n` newlines, but `GITHUB_APP_PRIVATE_KEY_PATH` is easier for local development.
+
+### 3. Prepare the database
 
 ```bash
 npm run prisma:generate
-npm run prisma:migrate -- --name init
+npm run prisma:migrate
 ```
 
-4. Optional seed:
+### 4. Start the app
 
-```bash
-npm run seed
-```
-
-5. Start development server:
+Backend:
 
 ```bash
 npm run dev
 ```
 
-The API defaults to `http://localhost:4000`.
+Frontend:
 
-## Demo Flow
+```bash
+cd frontend
+npm run dev
+```
 
-1. Start backend: `npm run dev`
-2. Start frontend: `cd frontend && npm run dev`
-3. Create or log in as a user.
-4. Create a project.
-5. Initialize ProjectContext with the sample demo context from the dashboard Context page.
-6. Create an MCP API key from the MCP Setup page.
-7. Connect Context Vault MCP in Codex CLI using the copied MCP config.
-8. Run `context_health_check`.
-9. Run `context_load` and show the optimized AI project handoff.
-10. Connect GitHub manually from the GitHub page.
-11. Trigger a smart webhook from Postman using a commit message such as `Implement MCP API key authentication`.
-12. Review the generated GitHub suggestion in the dashboard.
-13. Apply the suggestion.
-14. Check readable version history for generated title, summary, changed counts, and preview.
-15. Run `context_load` again to show that the AI handoff now includes the applied project memory.
-
-## Automatic Context Capture in AI CLIs
-
-MCP cannot silently capture every AI response by itself. The AI client must be instructed to call a Context Vault MCP tool after meaningful work.
-
-Add this instruction to Codex, OpenCode, Cursor, or similar project instructions:
+Open the dashboard at:
 
 ```text
-After completing meaningful implementation work, automatically call Context Vault MCP tool context_auto_capture with the implementation summary. Do not apply the suggestion.
+http://localhost:5173
 ```
 
-Use `context_auto_capture` for completed implementation, bug fixes, refactors, integration work, or demo progress. Do not use it for tiny/no-op changes. The tool creates a pending ContextSuggestion only; the user reviews and applies it in the dashboard.
+## First Use
 
-## Main API Flow
+1. Create an account or log in.
+2. Create a project.
+3. Add or initialize the project context from the dashboard.
+4. Open the MCP setup page.
+5. Create an MCP API key.
+6. Build the MCP server.
+7. Add the MCP server config to your AI client.
+8. Run `context_health_check` from the AI client.
+9. Run `context_load` or `context_smart` before project work.
 
-Signup:
+## MCP Setup
+
+Build the MCP server:
 
 ```bash
-curl -X POST http://localhost:4000/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email":"dev@example.com","password":"password123","name":"Dev"}'
+cd context-vault-mcp
+npm run build
 ```
 
-Login:
+The server runs as a standard stdio MCP server:
 
-```bash
-curl -X POST http://localhost:4000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"dev@example.com","password":"password123"}'
+```text
+node ABSOLUTE_PATH_TO/context-vault-mcp/build/index.js
 ```
 
-Create project:
-
-```bash
-curl -X POST http://localhost:4000/api/projects \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"My Project","description":"AI-readable memory store"}'
-```
-
-Initialize context:
-
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/context/initialize \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"goal":"Build Context Vault","techStack":["Node.js","TypeScript"],"features":["Versioned context"],"decisions":[],"constraints":[],"issues":[],"dependencies":[],"nextSteps":["Test APIs"],"architectureNotes":[],"aiInstructions":"Use stored context as truth.","changeSummary":"Initial context"}'
-```
-
-Patch official context:
-
-```bash
-curl -X PATCH http://localhost:4000/api/projects/PROJECT_ID/context \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"nextSteps":["Add MCP integration"],"changeSummary":"Updated next steps"}'
-```
-
-Create suggestion:
-
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/suggestions \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Add architecture note","source":"ai","suggestedPatch":{"architectureNotes":["ProjectContext is the official source of truth"]}}'
-```
-
-Apply suggestion:
-
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/suggestions/SUGGESTION_ID/apply \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"changeSummary":"Applied architecture note"}'
-```
-
-Reject suggestion:
-
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/suggestions/SUGGESTION_ID/reject \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-List versions:
-
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/projects/PROJECT_ID/versions
-```
-
-Create an MCP API key:
-
-```bash
-curl -X POST http://localhost:4000/api/api-keys \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Cursor MCP","scopes":["context:read","context:write:suggestion"]}'
-```
-
-The raw `key` is returned only once. Store it in the MCP server as `CONTEXT_VAULT_API_KEY`.
-
-List API keys:
-
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/api-keys
-```
-
-Revoke an API key:
-
-```bash
-curl -X DELETE -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/api-keys/API_KEY_ID
-```
-
-## GitHub Sync Foundation
-
-GitHub sync creates pending `ContextSuggestion` records only. It never mutates official `ProjectContext` directly.
-
-Add these environment variables:
+Use these environment variables in your MCP client config:
 
 ```env
-GITHUB_WEBHOOK_DEV_MODE=true
-GITHUB_WEBHOOK_SECRET=optional_global_dev_secret
+CONTEXT_VAULT_API_URL=http://localhost:4000
+CONTEXT_VAULT_API_KEY=cv_live_xxxxx
+CONTEXT_VAULT_PROJECT_ID=project_id
 ```
 
-Connect a repository manually:
+Create `CONTEXT_VAULT_API_KEY` in the dashboard on the MCP setup page. The raw key is shown only once.
 
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/github/connect \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"repoOwner":"owner","repoName":"repo","repoUrl":"https://github.com/owner/repo","defaultBranch":"main","webhookSecret":"optional-dev-secret"}'
+Recommended scopes:
+
+```text
+context:read
+context:write:suggestion
 ```
 
-Check the active connection:
+## MCP Client Config
 
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/projects/PROJECT_ID/github/connection
+Use absolute paths. Replace the API key and project ID with values from the dashboard.
+
+```json
+{
+  "mcpServers": {
+    "context-vault": {
+      "command": "node",
+      "args": ["C:\\Users\\you\\path\\to\\contextvault_mcp\\context-vault-mcp\\build\\index.js"],
+      "env": {
+        "CONTEXT_VAULT_API_URL": "http://localhost:4000",
+        "CONTEXT_VAULT_API_KEY": "cv_live_xxxxx",
+        "CONTEXT_VAULT_PROJECT_ID": "project_id"
+      }
+    }
+  }
+}
 ```
 
-Expose the local backend with ngrok:
+This same block works for MCP-capable clients that accept standard stdio server config, including Cursor, Claude Desktop, Windsurf, and similar tools.
+
+For Claude Code or other CLI clients, use the equivalent registration flow:
+
+```text
+command: node
+args: C:\Users\you\path\to\contextvault_mcp\context-vault-mcp\build\index.js
+env:
+  CONTEXT_VAULT_API_URL=http://localhost:4000
+  CONTEXT_VAULT_API_KEY=cv_live_xxxxx
+  CONTEXT_VAULT_PROJECT_ID=project_id
+```
+
+## MCP Tools
+
+Available tools include:
+
+- `context_health_check`: verify backend reachability, API key auth, and project access.
+- `context_load`: load the latest official project context.
+- `context_smart`: load task-relevant project context.
+- `context_search`: search within the latest project context.
+- `context_versions`: list context versions.
+- `context_load_version`: load a historical context snapshot.
+- `context_create_suggestion`: create a pending suggestion.
+- `context_capture`: convert notes into a pending suggestion.
+- `context_import_git`: convert git summaries into a pending suggestion.
+- `context_auto_capture`: create a pending suggestion after meaningful completed work.
+- `github_connect_url`: get the GitHub App install URL for a project.
+
+Suggestion tools never apply changes directly. Review and apply suggestions in the dashboard.
+
+## Recommended AI Client Instructions
+
+Add this to your project instructions for Codex, Cursor, Claude, or similar agents:
+
+```text
+Use Context Vault as the source of truth for project memory. Before implementation advice, call context_load or context_smart. After meaningful implementation, bug fix, refactor, integration, or verification work, create a pending Context Vault suggestion using context_auto_capture. Do not apply suggestions automatically.
+```
+
+## Example Prompts
+
+```text
+Use Context Vault and run context_health_check.
+```
+
+```text
+Load the latest Context Vault project context before changing code.
+```
+
+```text
+Use context_smart for this task: fix GitHub App repository mapping.
+```
+
+```text
+Search Context Vault for decisions about MCP authentication.
+```
+
+```text
+Create a pending Context Vault suggestion summarizing the work completed in this session.
+```
+
+## GitHub Integration
+
+Context Vault can connect to GitHub through a GitHub App. Pushes and pull requests can create pending suggestions based on safe metadata such as branch, commit messages, pull request title, repository, and changed-file summaries.
+
+GitHub suggestions are reviewable. They do not mutate official project context until applied in the dashboard.
+
+For local GitHub App testing, expose the backend with a tunnel such as ngrok:
 
 ```bash
 ngrok http 4000
 ```
 
-Create a GitHub webhook:
+Use the public URL as your GitHub App webhook target and configure the app callback/setup URL to point at the backend route used by the running app.
 
-- Payload URL: `https://YOUR-NGROK-URL/api/github/webhook`
-- Content type: `application/json`
-- Events: `push` and `pull_request`
-- Secret: use `GITHUB_WEBHOOK_SECRET` if configured; optional only when `GITHUB_WEBHOOK_DEV_MODE=true`
+## Troubleshooting
 
-Verify stored GitHub events:
+**MCP health check says the backend is not reachable**
+
+Make sure the backend is running and `CONTEXT_VAULT_API_URL` points to it.
+
+**MCP API key is invalid**
+
+Create a new MCP API key in the dashboard. Use the raw key immediately; it is shown only once.
+
+**Project not found**
+
+Check `CONTEXT_VAULT_PROJECT_ID`. The project must belong to the same account that created the MCP API key.
+
+**GitHub App installed but no repository appears**
+
+Check backend logs for GitHub App setup errors. For local development, prefer `GITHUB_APP_PRIVATE_KEY_PATH` pointing to the GitHub App `.pem` file.
+
+**Private key problems**
+
+Use one of these forms:
+
+```env
+GITHUB_APP_PRIVATE_KEY_PATH=C:\path\to\github-app-private-key.pem
+```
+
+or:
+
+```env
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+```
+
+Do not paste an unescaped multiline private key directly into `.env`.
+
+## Development Commands
+
+Backend:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/projects/PROJECT_ID/github/events
+npm run dev
+npm run build
 ```
 
-Verify pending GitHub suggestions:
+Frontend:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:4000/api/projects/PROJECT_ID/suggestions
+cd frontend
+npm run dev
+npm run build
 ```
 
-Confirm `GET /api/projects/PROJECT_ID/context` is unchanged until a pending suggestion is manually applied.
-
-## Cumulative Context Merge
-
-`ProjectContext` is the complete latest source of truth. Partial updates and applied suggestions merge into the existing context by default instead of replacing arrays.
-
-Merge rules:
-
-- `goal` and `aiInstructions` replace only when a non-empty value is provided.
-- `techStack`, `features`, `decisions`, `constraints`, `issues`, `dependencies`, `nextSteps`, and `architectureNotes` merge by default.
-- Array values are trimmed, empty strings are ignored, and duplicates are removed case-insensitively.
-- Send `mergeMode: "replace"` only for intentional cleanup or restore workflows.
-
-Repair existing local context from version history:
+MCP server:
 
 ```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/context/rebuild-from-versions \
-  -H "Authorization: Bearer YOUR_TOKEN"
+cd context-vault-mcp
+npm run build
 ```
 
-Replace corrupted demo context with a full official context:
+## Safety Model
 
-```bash
-curl -X PUT http://localhost:4000/api/projects/PROJECT_ID/context/replace \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"goal":"Context Vault is a persistent, account-based, versioned context store for AI-assisted development.","techStack":["Node.js","TypeScript","Express","Prisma","PostgreSQL","React","Vite","MCP"],"features":["JWT authentication","Projects","Official ProjectContext","Immutable ContextVersion snapshots","Reviewable ContextSuggestion workflow","Scoped MCP API keys","Context Vault MCP server tools","GitHub repository connection","GitHub webhook ingestion","Smart GitHub Analysis","React dashboard"],"decisions":["ProjectContext is the complete official source of truth","Suggestions never mutate official context until explicitly applied","GitHub events create pending suggestions only","MCP clients authenticate with scoped API keys, not login JWTs","Context updates merge cumulatively by default"],"constraints":["Do not auto-apply AI or GitHub suggestions","Do not store raw API keys","Do not expose webhook secret hashes","Keep GitHub sync suggestion-only until reviewed","No AI provider integration yet","No GitHub App OAuth yet"],"issues":["Existing demo ProjectContext was incomplete and required manual repair"],"dependencies":["@prisma/client","express","zod","jsonwebtoken","bcrypt","@modelcontextprotocol/sdk","react","vite","react-router-dom"],"nextSteps":["Use MCP context_load to verify full repaired context","Demo GitHub webhook creating pending suggestions","Demo MCP-created suggestions appearing in dashboard"],"architectureNotes":["Backend owns auth, project ownership, context versioning, suggestions, API keys, and GitHub webhook processing","ContextVersion snapshots store full ProjectContext after each official change","MCP server is a standalone stdio API bridge to the backend","React dashboard provides project context, suggestions, versions, GitHub setup, and MCP setup"],"aiInstructions":"Use Context Vault as the source of truth. Load context before implementation advice. Create pending suggestions for memory updates; never apply them automatically.","changeSummary":"Repaired demo ProjectContext with full accumulated project memory."}'
-```
+Context Vault separates memory proposals from official memory.
 
-Postman merge test:
-
-1. Initialize context with:
-
-```json
-{
-  "goal": "Test cumulative context",
-  "techStack": [],
-  "features": ["Backend auth"],
-  "decisions": ["JWT auth"],
-  "constraints": [],
-  "issues": [],
-  "dependencies": [],
-  "nextSteps": [],
-  "architectureNotes": [],
-  "aiInstructions": "Use Context Vault as source of truth.",
-  "changeSummary": "Initial context"
-}
-```
-
-2. Patch context:
-
-```json
-{
-  "features": ["MCP server"],
-  "decisions": ["API keys for MCP"],
-  "changeSummary": "Add MCP memory access"
-}
-```
-
-Expected latest context:
-
-```json
-{
-  "features": ["Backend auth", "MCP server"],
-  "decisions": ["JWT auth", "API keys for MCP"]
-}
-```
-
-3. Create and apply a suggestion:
-
-```json
-{
-  "title": "Add GitHub sync",
-  "source": "ai",
-  "suggestedPatch": {
-    "features": ["GitHub sync"]
-  }
-}
-```
-
-Expected latest context features include:
-
-```json
-["Backend auth", "MCP server", "GitHub sync"]
-```
-
-4. Call MCP `context_load`. It should return all accumulated features, not only the latest suggestion.
-
-### Smart GitHub Analysis
-
-Webhook processing now uses deterministic, rule-based Smart GitHub Analysis. It reads only safe metadata: event type, action, branch, commit SHA, PR number/title, author, commit messages, compare URL, and safe changed-file summaries when present. It does not store raw patches, fetch diffs, call an AI provider, or mutate official `ProjectContext`.
-
-The analysis classifies changes into suggestion fields such as `features`, `issues`, `decisions`, `dependencies`, `constraints`, `architectureNotes`, and `nextSteps`. Each GitHub suggestion stores `reasoningSummary`, `confidence`, and a link to the related GitHub event.
-
-Later this can be upgraded with an AI provider, but the current implementation is intentionally deterministic and reviewable.
-
-Reprocess an event:
-
-```bash
-curl -X POST http://localhost:4000/api/projects/PROJECT_ID/github/events/EVENT_ID/reprocess \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"force":false}'
-```
-
-Use `{"force":true}` to create a new suggestion when the event already has a related pending suggestion.
-
-Postman push webhook example:
-
-```json
-{
-  "ref": "refs/heads/main",
-  "after": "abc123",
-  "repository": {
-    "name": "repo",
-    "full_name": "owner/repo",
-    "html_url": "https://github.com/owner/repo",
-    "owner": { "login": "owner" }
-  },
-  "sender": { "login": "dev" },
-  "commits": [
-    { "message": "Implement MCP API key authentication" }
-  ],
-  "head_commit": {
-    "id": "abc123",
-    "author": { "name": "Dev" }
-  },
-  "compare": "https://github.com/owner/repo/compare/a...b"
-}
-```
-
-Headers:
-
-```text
-x-github-event: push
-x-github-delivery: postman-push-1
-Content-Type: application/json
-```
-
-Expected suggestion: `features`, `decisions`, and `architectureNotes` mention MCP/API key authentication.
-
-Postman fix example: change commit message to `Fix context version creation bug`.
-
-Expected suggestion: `issues` mentions the fixed context version creation bug.
-
-Postman PR webhook example:
-
-```json
-{
-  "action": "opened",
-  "number": 42,
-  "repository": {
-    "name": "repo",
-    "full_name": "owner/repo",
-    "html_url": "https://github.com/owner/repo",
-    "owner": { "login": "owner" }
-  },
-  "sender": { "login": "dev" },
-  "pull_request": {
-    "title": "Add smart context optimizer",
-    "html_url": "https://github.com/owner/repo/pull/42",
-    "merged": false,
-    "head": { "ref": "feature/smart-context" },
-    "user": { "login": "dev" }
-  }
-}
-```
-
-Headers:
-
-```text
-x-github-event: pull_request
-x-github-delivery: postman-pr-1
-Content-Type: application/json
-```
-
-Expected suggestion: `features` and `architectureNotes` mention the smart context optimizer.
+- MCP API keys are scoped.
+- Raw API keys are shown once.
+- Suggestions are pending by default.
+- GitHub and AI-generated suggestions do not auto-apply.
+- Official context changes create immutable versions.
+- AI clients should load Context Vault memory before relying on stale chat history.
