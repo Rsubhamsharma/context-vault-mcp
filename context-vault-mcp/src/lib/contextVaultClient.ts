@@ -83,6 +83,10 @@ const versionContextResponseSchema = z.object({
   version: versionContextSchema
 });
 
+const githubInstallUrlResponseSchema = z.object({
+  installUrl: z.string()
+});
+
 const suggestionResponseSchema = z.object({
   suggestion: z.object({
     id: z.string(),
@@ -275,6 +279,15 @@ export class ContextVaultClient {
       }
     );
     return response.suggestion;
+  }
+
+  async getGitHubInstallUrl(projectId?: string): Promise<string> {
+    const resolvedProjectId = resolveProjectId(projectId);
+    const response = await request(
+      `/api/projects/${encodeURIComponent(resolvedProjectId)}/github/app/install-url`,
+      githubInstallUrlResponseSchema
+    );
+    return response.installUrl;
   }
 
   async captureContext(input: {

@@ -11,7 +11,18 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default("7d"),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   GITHUB_WEBHOOK_DEV_MODE: z.coerce.boolean().default(true),
-  GITHUB_WEBHOOK_SECRET: z.string().optional()
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  GITHUB_APP_NAME: z.string().default("context-vault"),
+  GITHUB_APP_SLUG: z.string().default("context-vault"),
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_CLIENT_ID: z.string().optional(),
+  GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
+  GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
+  GITHUB_APP_SETUP_URL: z.string().default("http://localhost:5173/github/setup"),
+  FRONTEND_URL: z.string().default("http://localhost:5173"),
+  BACKEND_PUBLIC_URL: z.string().default("http://localhost:4000")
 });
 
 const parsed = envSchema.safeParse(process.env);

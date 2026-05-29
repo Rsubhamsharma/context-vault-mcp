@@ -36,6 +36,11 @@ enum GitHubEventStatus {
   failed
 }
 
+enum GitHubConnectionType {
+  manual
+  github_app
+}
+
 model User {
   id           String       @id @default(cuid())
   email        String       @unique
@@ -63,7 +68,7 @@ model Project {
   versions      ContextVersion[]
   suggestions   ContextSuggestion[]
   mcpSessions   McpSession[]
-  githubConnection GitHubConnection?
+  githubConnections GitHubConnection[]
   githubEvents  GitHubEvent[]
 
   @@index([userId])
@@ -156,11 +161,16 @@ model McpSession {
 model GitHubConnection {
   id                String        @id @default(cuid())
   userId            String
-  projectId         String        @unique
+  projectId         String
   repoOwner         String
   repoName          String
   repoUrl           String
   defaultBranch     String
+  installationId    String?
+  repositoryId      String?
+  accountLogin      String?
+  accountType       String?
+  connectionType    GitHubConnectionType @default(manual)
   webhookSecretHash String?
   isActive          Boolean       @default(true)
   createdAt         DateTime      @default(now())
@@ -170,7 +180,13 @@ model GitHubConnection {
   events            GitHubEvent[]
 
   @@index([userId])
+  @@index([projectId])
+  @@index([installationId])
+  @@index([repositoryId])
+  @@index([projectId, connectionType, isActive])
+  @@index([installationId, repositoryId])
   @@index([repoOwner, repoName, isActive])
+  @@unique([projectId, repoOwner, repoName, connectionType], name: "project_repo_connection_type_unique")
 }
 
 model GitHubEvent {

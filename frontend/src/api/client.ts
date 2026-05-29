@@ -87,9 +87,20 @@ export type GitHubConnection = {
   repoName: string;
   repoUrl: string;
   defaultBranch: string;
+  installationId?: string | null;
+  repositoryId?: string | null;
+  accountLogin?: string | null;
+  accountType?: string | null;
+  connectionType?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type GitHubConnectionResult = {
+  githubAppConnections: GitHubConnection[];
+  manualConnections: GitHubConnection[];
+  primaryConnectionType: "github_app" | "manual" | null;
 };
 
 export type GitHubEvent = {
@@ -172,7 +183,9 @@ export const api = {
   rejectSuggestion: (projectId: string, suggestionId: string) =>
     request(`/api/projects/${projectId}/suggestions/${suggestionId}/reject`, { method: "POST" }),
   githubConnection: (projectId: string) =>
-    request<{ connection: GitHubConnection }>(`/api/projects/${projectId}/github/connection`),
+    request<GitHubConnectionResult>(`/api/projects/${projectId}/github/connection`),
+  githubInstallUrl: (projectId: string) =>
+    request<{ installUrl: string }>(`/api/projects/${projectId}/github/app/install-url`),
   connectGithub: (projectId: string, body: Record<string, string>) =>
     request<{ connection: GitHubConnection }>(`/api/projects/${projectId}/github/connect`, {
       method: "POST",

@@ -14,6 +14,7 @@ import { registerContextLoadVersionTool } from "./tools/contextLoadVersion.tool.
 import { registerContextSearchTool } from "./tools/contextSearch.tool.js";
 import { registerContextSmartTool } from "./tools/contextSmart.tool.js";
 import { registerContextVersionsTool } from "./tools/contextVersions.tool.js";
+import { registerGitHubConnectUrlTool } from "./tools/githubConnectUrl.tool.js";
 
 const server = new McpServer({
   name: "context-vault-mcp",
@@ -32,6 +33,7 @@ registerContextCaptureTool(server, client);
 registerContextImportGitTool(server, client);
 registerContextSearchTool(server, client);
 registerContextSmartTool(server, client);
+registerGitHubConnectUrlTool(server, client);
 registerContinueWithContextPrompt(server);
 registerAfterTaskContextCapturePrompt(server);
 
