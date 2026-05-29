@@ -28,11 +28,10 @@ const previewLabels: Record<string, string> = {
   addedArchitectureNotes: "Architecture note"
 };
 
-const changedSectionText = (version: Version): string => {
+const changedSections = (version: Version): string[] => {
   return Object.entries(version.changedSections ?? {})
     .filter(([, value]) => Boolean(value))
-    .map(([key, value]) => `${sectionLabels[key] ?? key}: ${value === true ? "changed" : `+${value}`}`)
-    .join(", ");
+    .map(([key, value]) => `${sectionLabels[key] ?? key}: ${value === true ? "changed" : `+${value}`}`);
 };
 
 const previewItems = (version: Version): string[] => {
@@ -67,35 +66,34 @@ export function VersionsPage() {
       <header className="pageHeader"><div><h1>Version History</h1><p>Immutable snapshots created whenever official context changes.</p></div></header>
       {error && <ErrorBox message={error} />}
       {loading ? <Loading /> : versions.length === 0 ? <Empty>No versions yet.</Empty> : (
-        <div className="split">
-          <div className="panel">
-            <table><tbody>{versions.map((version) => (
-              <tr key={version.id}>
-                <td>v{version.versionNumber}</td>
-                <td>{version.source}</td>
-                <td>
-                  <strong>{version.versionTitle ?? "Project Context Updated"}</strong>
-                  <p className="muted">{version.changeSummary}</p>
-                  {changedSectionText(version) && <p className="muted">{changedSectionText(version)}</p>}
+        <div className="split versionsLayout">
+          <div className="versionTimeline">
+            {versions.map((version, index) => (
+              <article className={`versionCard ${index === 0 ? "currentVersion" : ""}`} key={version.id}>
+                <div className="versionMarker">v{version.versionNumber}</div>
+                <div className="versionBody">
+                  <div className="cardHeader">
+                    <div>
+                      <h3>{version.versionTitle ?? "Project Context Updated"}</h3>
+                      <p className="muted">Source: {version.source} · Created {formatDate(version.createdAt)}</p>
+                    </div>
+                    <button className="secondary" onClick={() => setSelected(version)}>View Snapshot</button>
+                  </div>
+                  <p>{version.changeSummary}</p>
+                  <div className="badgeStack">
+                    {changedSections(version).map((item) => <span className="badge" key={item}>{item}</span>)}
+                    {changedSections(version).length === 0 && <span className="badge">No section changes recorded</span>}
+                  </div>
                   {previewItems(version).length > 0 && (
                     <ul className="miniList">
                       {previewItems(version).map((item) => <li key={item}>{item}</li>)}
                     </ul>
                   )}
-                  {version.preview && (
-                    <p className="muted">
-                      {version.preview.features?.slice(0, 2).join(", ") || "No feature preview"} ·
-                      {" "}{version.preview.counts?.featuresCount ?? 0} features,
-                      {" "}{version.preview.counts?.decisionsCount ?? 0} decisions
-                    </p>
-                  )}
-                </td>
-                <td>{formatDate(version.createdAt)}</td>
-                <td><button className="secondary" onClick={() => setSelected(version)}>View</button></td>
-              </tr>
-            ))}</tbody></table>
+                </div>
+              </article>
+            ))}
           </div>
-          <div className="panel">
+          <div className="panel snapshotPanel">
             <h2>Historical Snapshot</h2>
             {selected && <p className="note">Historical snapshot. Latest official context may be newer.</p>}
             {selected ? <pre>{JSON.stringify(selected.snapshot, null, 2)}</pre> : <Empty>Select a version.</Empty>}

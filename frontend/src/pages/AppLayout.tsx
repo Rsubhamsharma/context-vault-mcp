@@ -5,29 +5,50 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const projectLinks = projectId ? [
-    ["/context", "Context"],
-    ["/github", "GitHub"],
-    ["/suggestions", "Suggestions"],
-    ["/versions", "Versions"],
-    ["/mcp", "MCP Setup"]
+    ["/context", "Project Context", "◆"],
+    ["/suggestions", "Suggestions", "◇"],
+    ["/versions", "Versions", "◌"],
+    ["/github", "GitHub", "⌁"]
+  ] : [];
+  const developerLinks = projectId ? [
+    ["/api-keys", "API Keys", "◍"],
+    ["/mcp", "MCP Setup", "⌘"],
+    ["/docs", "Docs", "□"]
   ] : [];
 
   return (
     <div className="app">
       <aside className="sidebar">
-        <div>
-          <div className="brand">Context Vault</div>
-          <p className="tagline">Context Vault keeps AI project memory portable across tools.</p>
+        <div className="sidebarHeader">
+          <div className="brand"><span className="brandMark"></span>Context Vault</div>
+          <p className="tagline">AI-readable project memory for every tool.</p>
         </div>
         <nav>
-          <NavLink to="/projects">Projects</NavLink>
-          {projectLinks.map(([suffix, label]) => (
-            <NavLink key={suffix} to={`/projects/${projectId}${suffix}`}>{label}</NavLink>
+          <span className="navGroup">Main</span>
+          <NavLink to="/projects"><span className="navIcon">⌂</span>Dashboard</NavLink>
+          {projectLinks.map(([suffix, label, icon]) => (
+            <NavLink key={suffix} to={`/projects/${projectId}${suffix}`}><span className="navIcon">{icon}</span>{label}</NavLink>
+          ))}
+          {developerLinks.length > 0 && <span className="navGroup">Developer Setup</span>}
+          {developerLinks.map(([suffix, label, icon]) => (
+            <NavLink key={suffix} to={`/projects/${projectId}${suffix}`}><span className="navIcon">{icon}</span>{label}</NavLink>
           ))}
         </nav>
-        <button className="secondary" onClick={() => { authStore.clear(); navigate("/login"); }}>Logout</button>
+        <div className="sidebarFooter">
+          <div className="appStatus"><span></span>MCP memory ready</div>
+          <button className="secondary" onClick={() => { authStore.clear(); navigate("/login"); }}>Logout</button>
+        </div>
       </aside>
-      <main className="main"><Outlet /></main>
+      <main className="main">
+        <div className="topbar">
+          <div className="commandInput">Search memory, suggestions, docs...</div>
+          <div className="topbarBadges">
+            <span className="badge successBadge">Review-first</span>
+            <span className="badge">Scoped keys</span>
+          </div>
+        </div>
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -63,15 +63,21 @@ temp/
 test-results/
 playwright-report/
 blob-report/
+.playwright-mcp/
 **/test-results/
 **/playwright-report/
 **/blob-report/
+landing-*.png
 
 # MCP / local demo runtime files
 .mcp-cache/
 context-vault-mcp/.mcp-cache/
 *.local.json
 *.runtime.json
+
+# Local AI agent tooling
+.agents/
+skills-lock.json
 
 # OS files
 .DS_Store

@@ -30,15 +30,25 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <main className="authShell">
+      <section className="authContextPanel" aria-label="Context Vault overview">
+        <div className="brand"><span className="brandMark"></span>Context Vault</div>
+        <h1>Load the same project memory across AI tools.</h1>
+        <p>GitHub stores code. Context Vault stores AI-readable project memory for Codex, Cursor, Claude, Windsurf, and MCP-compatible clients.</p>
+        <div className="authProofList">
+          <span>ProjectContext source of truth</span>
+          <span>Review-first suggestions</span>
+          <span>Scoped MCP API keys</span>
+        </div>
+      </section>
       <section className="authPanel">
-        <h1>Context Vault</h1>
-        <p>Shared AI-readable project memory for your tools, MCP clients, and repository changes.</p>
+        <h1>{mode === "login" ? "Sign in" : "Create account"}</h1>
+        <p>{mode === "login" ? "Load the same project memory across AI tools." : "Create a vault for portable AI-readable project memory."}</p>
         {error && <ErrorBox message={error} />}
         <form onSubmit={submit} className="form">
-          {mode === "signup" && <label>Name<input value={name} onChange={(e) => setName(e.target.value)} /></label>}
-          <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
-          <button disabled={loading}>{loading ? "Working..." : mode === "login" ? "Login" : "Create account"}</button>
+          {mode === "signup" && <label>Name<input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></label>}
+          <label>Email<input autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+          <label>Password<input autoComplete={mode === "login" ? "current-password" : "new-password"} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+          <button disabled={loading}>{loading ? "Working..." : mode === "login" ? "Sign in" : "Create account"}</button>
         </form>
         <p className="muted">
           {mode === "login" ? "Need an account? " : "Already have an account? "}

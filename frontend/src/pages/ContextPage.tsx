@@ -6,7 +6,12 @@ import { asList, formatDate } from "../utils";
 
 function Section({ title, value }: { title: string; value: unknown }) {
   const items = asList(value);
-  return <div className="sectionBlock"><h3>{title}</h3>{items.length ? <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="muted">None recorded</p>}</div>;
+  return (
+    <details className="contextSection" open={["Goal", "Decisions", "Next Steps"].includes(title)}>
+      <summary><span>{title}</span><em>{items.length}</em></summary>
+      {items.length ? <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="muted">None recorded</p>}
+    </details>
+  );
 }
 
 export function ContextPage() {
@@ -52,12 +57,16 @@ export function ContextPage() {
     <section>
       <header className="pageHeader">
         <div><h1>Official Project Context</h1><p>The current source of truth loaded by MCP clients.</p></div>
-        <button onClick={() => void load()}>Refresh</button>
+        <div className="actions"><button className="secondary" onClick={() => copy(JSON.stringify(context ?? {}, null, 2))}>Copy context</button><button onClick={() => void load()}>Refresh</button></div>
       </header>
       {error && <ErrorBox message={error} />}
       {loading ? <Loading /> : !context ? <Empty>No context initialized.</Empty> : (
         <div className="panel">
-          <div className="metaRow"><span>Version {context.currentVersionNumber}</span><span>Updated {formatDate(context.updatedAt)}</span></div>
+          <div className="contextMeta">
+            <div><span>Current version</span><strong>v{context.currentVersionNumber}</strong></div>
+            <div><span>Updated</span><strong>{formatDate(context.updatedAt)}</strong></div>
+            <div><span>MCP helper</span><code>context_load</code></div>
+          </div>
           <Section title="Goal" value={context.goal} />
           <Section title="Tech Stack" value={context.techStack} />
           <Section title="Features" value={context.features} />
@@ -79,7 +88,7 @@ export function ContextPage() {
       )}
       {optimized?.optimizedContext && (
         <div className="panel">
-          <h2>Optimized AI Context Preview</h2>
+          <div className="panelHeader"><h2>Optimized AI Context Preview</h2><button className="secondary" onClick={() => copy(JSON.stringify(optimized.optimizedContext, null, 2))}>Copy MCP preview</button></div>
           <p className="note">{optimized.optimizationSummary}</p>
           <div className="metaRow">
             <span>Original estimate: {optimized.originalTokenEstimate} tokens</span>

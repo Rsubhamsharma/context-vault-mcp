@@ -6,6 +6,7 @@ import { prisma } from "../../db/prisma";
 import { ApiError } from "../../utils/ApiError";
 import { projectService } from "../projects/project.service";
 import { githubAnalysisService, type GitHubAnalysisInput, type GitHubChangedFile } from "./githubAnalysis.service";
+import { githubSuggestionRefinementService, type GitHubSuggestionPatch, type GitHubSuggestionRefinementResult } from "./githubSuggestionRefinement.service";
 import type { ConnectGitHubInput, ReprocessGitHubEventInput } from "./github.schemas";
 
 type JsonObject = Record<string, unknown>;
@@ -490,6 +491,197 @@ const analysisInputFromMetadata = (metadata: unknown): GitHubAnalysisInput => {
     repoOwner: stringValue(raw.repoOwner) ?? "unknown",
     repoName: stringValue(raw.repoName) ?? "unknown",
     merged: booleanValue(raw.merged)
+  };
+};
+
+const toStringItems = (value: unknown): string[] => {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+};
+
+const includesAnyText = (text: string, terms: readonly string[]): boolean => {
+  return terms.some((term) => text.includes(term));
+};
+
+const patchArrayFields = [
+  "features",
+  "decisions",
+  "constraints",
+  "issues",
+  "dependencies",
+  "nextSteps",
+  "architectureNotes"
+] as const;
+
+const patchHasNewInformation = (context: Awaited<ReturnType<typeof prisma.projectContext.findUnique>>, patch: GitHubSuggestionPatch): boolean => {
+  if (!context) {
+    return patchArrayFields.some((field) => patch[field].length > 0) || Boolean(patch.aiInstructions?.trim());
+  }
+
+  for (const field of patchArrayFields) {
+    const existing = new Set(toStringItems(context[field]).map((item) => item.trim().toLowerCase()));
+    if (patch[field].some((item) => item.trim() && !existing.has(item.trim().toLowerCase()))) {
+      return true;
+    }
+  }
+
+  return Boolean(patch.aiInstructions?.trim() && patch.aiInstructions.trim() !== context.aiInstructions.trim());
+};
+
+const isNoisyGitHubChange = (parsed: ParsedGitHubEvent, result: GitHubSuggestionRefinementResult): boolean => {
+  const signalText = [
+    parsed.title,
+    ...parsed.commitMessages,
+    ...(parsed.changedFiles?.map((file) => file.filename) ?? [])
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  const onlyReviewNextStep =
+    result.suggestedPatch.features.length === 0 &&
+    result.suggestedPatch.decisions.length === 0 &&
+    result.suggestedPatch.constraints.length === 0 &&
+    result.suggestedPatch.issues.length === 0 &&
+    result.suggestedPatch.dependencies.length === 0 &&
+    result.suggestedPatch.architectureNotes.length === 0;
+
+  const looksTrivial = includesAnyText(signalText, [
+    "typo",
+    "readme typo",
+    "formatting",
+    "whitespace",
+    "lint",
+    "prettier",
+    "generic test",
+    "test commit"
+  ]);
+
+  const packageLockOnly = parsed.changedFiles?.length
+    ? parsed.changedFiles.every((file) => file.filename.toLowerCase().endsWith("package-lock.json"))
+    : false;
+
+  return result.confidence === "low" && (onlyReviewNextStep || looksTrivial || packageLockOnly);
+};
+
+const processGitHubSuggestion = async (
+  projectId: string,
+  eventId: string,
+  parsed: ParsedGitHubEvent,
+  failureReason: string
+) => {
+  console.log("[github-analysis] processing GitHub suggestion", { projectId, eventId, failureReason });
+  const currentProjectContext = await prisma.projectContext.findUnique({ where: { projectId } });
+  console.log("[github-analysis] currentProjectContextLoaded", {
+    projectId,
+    currentProjectContextLoaded: Boolean(currentProjectContext)
+  });
+
+  const deterministicAnalysis = githubAnalysisService.analyze(analysisInputFromParsedEvent(parsed));
+  console.log("[github-analysis] deterministic suggestion", {
+    deterministicSuggestionTitle: deterministicAnalysis.title
+  });
+
+  const deterministicSuggestion = {
+    title: deterministicAnalysis.title,
+    suggestedPatch: {
+      features: deterministicAnalysis.suggestedPatch.features,
+      decisions: deterministicAnalysis.suggestedPatch.decisions,
+      constraints: deterministicAnalysis.suggestedPatch.constraints,
+      issues: deterministicAnalysis.suggestedPatch.issues,
+      dependencies: deterministicAnalysis.suggestedPatch.dependencies,
+      nextSteps: deterministicAnalysis.suggestedPatch.nextSteps,
+      architectureNotes: deterministicAnalysis.suggestedPatch.architectureNotes
+    },
+    confidence: deterministicAnalysis.confidence,
+    reasoningSummary: deterministicAnalysis.reasoningSummary
+  };
+
+  const refinementAttempt = currentProjectContext
+    ? await githubSuggestionRefinementService.refine({
+        eventType: parsed.eventType,
+        action: parsed.action,
+        branch: parsed.branch,
+        commitMessages: parsed.commitMessages,
+        prTitle: parsed.title,
+        changedFiles: parsed.changedFiles,
+        repository: {
+          owner: parsed.repoOwner,
+          name: parsed.repoName,
+          fullName: parsed.repositoryFullName
+        },
+        currentProjectContext,
+        deterministicSuggestion
+      })
+    : {
+        attempted: false,
+        succeeded: false,
+        fallbackUsed: true,
+        fallbackReason: "missing_project_context",
+        result: { ...deterministicSuggestion, refinementUsed: false }
+      };
+
+  const finalSuggestion = refinementAttempt.result;
+  const skippedNoMeaningfulChange =
+    !patchHasNewInformation(currentProjectContext, finalSuggestion.suggestedPatch) ||
+    isNoisyGitHubChange(parsed, finalSuggestion);
+
+  console.log("[github-analysis] refinement result", {
+    aiRefinementAttempted: refinementAttempt.attempted,
+    aiRefinementSucceeded: refinementAttempt.succeeded,
+    fallbackUsed: refinementAttempt.fallbackUsed,
+    fallbackReason: refinementAttempt.fallbackReason,
+    skippedNoMeaningfulChange,
+    finalSuggestionTitle: finalSuggestion.title,
+    finalConfidence: finalSuggestion.confidence
+  });
+
+  if (skippedNoMeaningfulChange) {
+    await prisma.gitHubEvent.update({
+      where: { id: eventId },
+      data: {
+        status: GitHubEventStatus.skipped,
+        errorMessage: "No meaningful context update detected",
+        processedAt: new Date()
+      }
+    });
+    console.log("No meaningful context update detected", { projectId, eventId });
+    return {
+      status: "skipped" as const,
+      eventId,
+      reason: "No meaningful context update detected"
+    };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const suggestion = await tx.contextSuggestion.create({
+      data: {
+        projectId,
+        title: finalSuggestion.title,
+        source: SuggestionSource.github,
+        suggestedPatch: finalSuggestion.suggestedPatch as Prisma.InputJsonObject,
+        reasoningSummary: finalSuggestion.reasoningSummary,
+        confidence: finalSuggestion.confidence,
+        relatedGithubEventId: eventId
+      }
+    });
+
+    const processedEvent = await tx.gitHubEvent.update({
+      where: { id: eventId },
+      data: {
+        status: GitHubEventStatus.processed,
+        processedAt: new Date(),
+        errorMessage: null
+      }
+    });
+
+    return { event: processedEvent, suggestion };
+  });
+
+  return {
+    status: "processed" as const,
+    eventId: result.event.id,
+    suggestionId: result.suggestion.id,
+    confidence: finalSuggestion.confidence,
+    refinementUsed: finalSuggestion.refinementUsed
   };
 };
 
@@ -1195,39 +1387,7 @@ export const githubService = {
     });
 
     try {
-      const analysis = githubAnalysisService.analyze(analysisInputFromParsedEvent(parsed));
-
-      const result = await prisma.$transaction(async (tx) => {
-        const suggestion = await tx.contextSuggestion.create({
-          data: {
-            projectId: connection.projectId,
-            title: analysis.title,
-            source: SuggestionSource.github,
-            suggestedPatch: githubAnalysisService.toInputJsonObject(analysis),
-            reasoningSummary: analysis.reasoningSummary,
-            confidence: analysis.confidence,
-            relatedGithubEventId: event.id
-          }
-        });
-
-        const processedEvent = await tx.gitHubEvent.update({
-          where: { id: event.id },
-          data: {
-            status: GitHubEventStatus.processed,
-            processedAt: new Date(),
-            errorMessage: null
-          }
-        });
-
-        return { event: processedEvent, suggestion };
-      });
-
-      return {
-        status: "processed",
-        eventId: result.event.id,
-        suggestionId: result.suggestion.id,
-        confidence: analysis.confidence
-      };
+      return await processGitHubSuggestion(connection.projectId, event.id, parsed, "GitHub analysis failed");
     } catch (error) {
       const message = error instanceof Error ? error.message : "GitHub analysis failed";
       await prisma.gitHubEvent.update({
@@ -1473,39 +1633,7 @@ export const githubService = {
     });
 
     try {
-      const analysis = githubAnalysisService.analyze(analysisInputFromParsedEvent(parsed));
-
-      const result = await prisma.$transaction(async (tx) => {
-        const suggestion = await tx.contextSuggestion.create({
-          data: {
-            projectId: fallbackConnection.projectId,
-            title: analysis.title,
-            source: SuggestionSource.github,
-            suggestedPatch: githubAnalysisService.toInputJsonObject(analysis),
-            reasoningSummary: analysis.reasoningSummary,
-            confidence: analysis.confidence,
-            relatedGithubEventId: event.id
-          }
-        });
-
-        const processedEvent = await tx.gitHubEvent.update({
-          where: { id: event.id },
-          data: {
-            status: GitHubEventStatus.processed,
-            processedAt: new Date(),
-            errorMessage: null
-          }
-        });
-
-        return { event: processedEvent, suggestion };
-      });
-
-      return {
-        status: "processed",
-        eventId: result.event.id,
-        suggestionId: result.suggestion.id,
-        confidence: analysis.confidence
-      };
+      return await processGitHubSuggestion(fallbackConnection.projectId, event.id, parsed, "GitHub App analysis failed");
     } catch (error) {
       const message = error instanceof Error ? error.message : "GitHub App analysis failed";
       await prisma.gitHubEvent.update({

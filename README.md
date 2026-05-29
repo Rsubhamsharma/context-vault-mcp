@@ -11,6 +11,16 @@ The product has two main parts:
 
 Context Vault is review-first. AI tools, GitHub events, and MCP tools can create pending suggestions, but official project memory changes only when you apply a suggestion in the dashboard.
 
+## Pitch
+
+**Problem:** AI tools lose project context across chats and platforms.
+
+**Solution:** Context Vault stores versioned AI-readable project memory and exposes it through MCP.
+
+**Why not GitHub:** GitHub stores code. Context Vault stores decisions, constraints, architecture, issues, next steps, and AI handoff context.
+
+**Core flow:** GitHub, Manual, or MCP update -> pending suggestion -> review/apply -> versioned memory -> MCP handoff.
+
 ## What It Solves
 
 AI coding sessions often lose important project knowledge when chats reset, tools change, or context windows fill up. Context Vault gives every supported AI client a shared, account-based source of truth for the project.

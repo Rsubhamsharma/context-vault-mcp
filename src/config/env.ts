@@ -21,6 +21,9 @@ const envSchema = z.object({
   GITHUB_APP_PRIVATE_KEY_PATH: z.string().optional(),
   GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
   GITHUB_APP_SETUP_URL: z.string().default("http://localhost:5173/github/setup"),
+  GITHUB_SUGGESTION_AI_PROVIDER: z.string().default("gemini"),
+  GITHUB_SUGGESTION_AI_MODEL: z.string().default("gemini-2.0-flash"),
+  GEMINI_API_KEY: z.string().optional(),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
   BACKEND_PUBLIC_URL: z.string().default("http://localhost:4000")
 });
