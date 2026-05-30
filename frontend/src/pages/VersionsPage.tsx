@@ -137,7 +137,7 @@ function VersionHistoryItem({
   onSelect: () => void;
 }) {
   return (
-    <button className={`versionHistoryItem ${active ? "isActive" : ""} ${current ? "isCurrent" : ""} ${isNoisyVersion(version) ? "isQuiet" : ""}`} onClick={onSelect} type="button">
+    <button className={`versionHistoryItem secondary ${active ? "isActive" : ""} ${current ? "isCurrent" : ""} ${isNoisyVersion(version) ? "isQuiet" : ""}`} onClick={onSelect} type="button">
       <span className="versionHistoryNumber">v{version.versionNumber}</span>
       <span className="versionHistoryBody">
         <span className="versionHistoryTopline">

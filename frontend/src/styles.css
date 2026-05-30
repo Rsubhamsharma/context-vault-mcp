@@ -6573,6 +6573,7 @@ textarea {
 .reviewSegmentedControl {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   width: fit-content;
   padding: 3px;
   border: 1px solid rgba(148,163,184,0.14);
@@ -7970,9 +7971,9 @@ textarea {
 .versionTimelineTrack {
   position: relative;
   display: grid;
-  gap: 0;
+  gap: 6px;
   min-width: 0;
-  border-top: 1px solid rgba(148,163,184,0.1);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .versionTimelineTrack::before {
@@ -7981,8 +7982,10 @@ textarea {
   left: 11px;
   top: 0;
   bottom: 0;
+  z-index: 1;
   width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(146,169,255,0.2) 10%, rgba(148,163,184,0.13) 88%, transparent);
+  background: color-mix(in oklch, var(--border) 72%, transparent);
+  pointer-events: none;
 }
 
 .versionHistoryItem {
@@ -7993,12 +7996,13 @@ textarea {
   width: 100%;
   min-height: 0;
   padding: 10px 8px 10px 0;
-  border: 0;
-  border-bottom: 1px solid rgba(148,163,184,0.105);
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--card);
   box-shadow: none;
   color: inherit;
+  font-family: var(--font-sans);
+  font-weight: 400;
   text-align: left;
   transition: background-color 150ms var(--ease-out), transform 150ms var(--ease-out), opacity 150ms var(--ease-out);
 }
@@ -8006,21 +8010,20 @@ textarea {
 .versionHistoryItem::before {
   content: "";
   position: relative;
-  z-index: 1;
+  z-index: 2;
   align-self: start;
   justify-self: center;
   width: 11px;
   height: 11px;
   margin-top: 4px;
-  border: 1px solid rgba(174,190,255,0.34);
+  border: 1px solid color-mix(in oklch, var(--success) 28%, white);
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.72), rgba(146,169,255,0.34) 32%, rgba(34,45,74,0.64) 74%);
-  box-shadow: 0 0 0 3px rgba(146,169,255,0.045), 0 0 14px rgba(146,169,255,0.12);
+  background: color-mix(in oklch, var(--success) 10%, white);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--success) 8%, transparent);
 }
 
 .versionHistoryItem:hover {
-  background: rgba(255,255,255,0.026);
+  background: color-mix(in oklch, var(--secondary) 46%, white);
   transform: none;
 }
 
@@ -8029,18 +8032,17 @@ textarea {
 }
 
 .versionHistoryItem.isActive {
-  background: rgba(146,169,255,0.075);
+  background: color-mix(in oklch, var(--accent) 62%, white);
 }
 
 .versionHistoryItem.isActive::before {
-  border-color: rgba(207,216,255,0.58);
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.86), rgba(169,188,255,0.58) 36%, rgba(80,96,160,0.76) 78%);
-  box-shadow: 0 0 0 4px rgba(146,169,255,0.08), 0 0 18px rgba(146,169,255,0.2);
+  border-color: color-mix(in oklch, var(--success) 36%, white);
+  background: color-mix(in oklch, var(--success) 14%, white);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--success) 9%, transparent);
 }
 
 .versionHistoryItem.isCurrent:not(.isActive)::before {
-  border-color: rgba(146,169,255,0.46);
+  border-color: color-mix(in oklch, var(--success) 34%, white);
 }
 
 .versionHistoryItem.isQuiet {
@@ -8052,7 +8054,14 @@ textarea {
   opacity: 1;
 }
 
-.versionHistoryNumber,
+.versionHistoryNumber {
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .versionDetailNumber {
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -8075,8 +8084,10 @@ textarea {
 .versionHistoryTopline strong {
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 550;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9300,7 +9311,7 @@ textarea {
 
 .mcpToolSetup article,
 .mcpPromptList article {
-  border-top: 1px solid rgba(148,163,184,0.095);
+  border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
   padding: 12px 0;
 }
 
@@ -9322,16 +9333,18 @@ textarea {
 .mcpToolsReference dl div,
 .mcpTroubleshooting dl div {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
   gap: 12px;
 }
 
 .mcpToolSetup dt,
 .mcpToolsReference dt,
 .mcpTroubleshooting dt {
+  min-width: 0;
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }
 
 .mcpPromptList > div {
@@ -9368,7 +9381,7 @@ textarea {
 
 .mcpToolsReference dl div {
   padding: 10px 0;
-  border-top: 1px solid rgba(148,163,184,0.095);
+  border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
 }
 
 .mcpTroubleshooting > div {
@@ -9377,7 +9390,7 @@ textarea {
 }
 
 .mcpTroubleshooting details {
-  border-top: 1px solid rgba(148,163,184,0.095);
+  border-top: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
   padding: 11px 0;
 }
 
@@ -9543,7 +9556,24 @@ textarea {
   color: var(--text-secondary);
 }
 
-.docsSidebar button,
+.docsSidebar button {
+  width: 100%;
+  min-height: 34px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 8px 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-align: left;
+  transition: color 150ms var(--ease-out), background-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+}
+
 .docsToc button {
   width: 100%;
   min-height: 28px;
@@ -9559,14 +9589,23 @@ textarea {
   text-align: left;
 }
 
-.docsSidebar button:hover,
+.docsSidebar button:hover {
+  background: rgba(255,255,255,0.035);
+  color: var(--text-secondary);
+  transform: none;
+}
+
+.docsSidebar button.isActive {
+  background: rgba(146,169,255,0.08);
+  color: var(--text-primary);
+}
+
 .docsToc button:hover {
   background: transparent;
   color: var(--text-secondary);
   transform: none;
 }
 
-.docsSidebar button.isActive,
 .docsToc button.isActive {
   background: transparent;
   color: rgba(219,227,242,0.82);
@@ -9586,7 +9625,7 @@ textarea {
   scroll-margin-top: 96px;
   min-width: 0;
   padding-bottom: 44px;
-  border-bottom: 1px solid rgba(148,163,184,0.065);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 36%, transparent);
 }
 
 .docsArticleSection:last-child {
@@ -9634,7 +9673,7 @@ textarea {
   gap: 22px;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid rgba(148,163,184,0.11);
+  border-top: 0;
 }
 
 .docsCompareTable h3 {
@@ -9643,9 +9682,9 @@ textarea {
 
 .docsDefinitionTable {
   display: grid;
-  gap: 0;
+  gap: 2px;
   margin: 14px 0 0;
-  border-top: 1px solid rgba(148,163,184,0.11);
+  border-top: 1px solid color-mix(in oklch, var(--border) 32%, transparent);
 }
 
 .docsDefinitionTable div {
@@ -9654,7 +9693,7 @@ textarea {
   gap: 20px;
   min-height: 48px;
   padding: 13px 0;
-  border-bottom: 1px solid rgba(148,163,184,0.085);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 30%, transparent);
 }
 
 .docsDefinitionTable dt {
@@ -9703,9 +9742,9 @@ textarea {
 
 .docsCodeBlock {
   margin: 16px 0 20px;
-  border: 1px solid rgba(148,163,184,0.12);
+  border: 1px solid color-mix(in oklch, var(--border) 48%, transparent);
   border-radius: 12px;
-  background: rgba(3,5,9,0.32);
+  background: color-mix(in oklch, var(--muted) 58%, white);
   overflow: hidden;
 }
 
@@ -9715,7 +9754,7 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(148,163,184,0.1);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 34%, transparent);
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -9747,9 +9786,9 @@ textarea {
 .docsCallout {
   margin: 20px 0 0;
   padding: 13px 15px;
-  border: 1px solid rgba(148,163,184,0.13);
+  border: 1px solid color-mix(in oklch, var(--border) 44%, transparent);
   border-radius: 10px;
-  background: rgba(255,255,255,0.024);
+  background: color-mix(in oklch, var(--muted) 46%, white);
 }
 
 .docsCallout strong {
@@ -9766,16 +9805,16 @@ textarea {
 }
 
 .docsCallout.warning {
-  border-color: rgba(241,192,106,0.2);
+  border-color: color-mix(in oklch, var(--warning) 18%, transparent);
 }
 
 .docsCallout.success {
-  border-color: rgba(127,225,173,0.18);
+  border-color: color-mix(in oklch, var(--success) 18%, transparent);
 }
 
 .docsFlow {
   padding: 10px 0;
-  border-block: 1px solid rgba(148,163,184,0.11);
+  border-block: 1px solid color-mix(in oklch, var(--border) 34%, transparent);
   color: var(--text-muted) !important;
   font-family: var(--font-mono);
   font-size: 0.84rem !important;
@@ -9784,12 +9823,12 @@ textarea {
 .docsTroubleshooting {
   display: grid;
   gap: 0;
-  border-top: 1px solid rgba(148,163,184,0.11);
+  border-top: 1px solid color-mix(in oklch, var(--border) 32%, transparent);
 }
 
 .docsTroubleshooting details {
   padding: 12px 0;
-  border-bottom: 1px solid rgba(148,163,184,0.09);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 30%, transparent);
 }
 
 .docsTroubleshooting summary {
@@ -10791,8 +10830,8 @@ button,
   color: var(--text-primary);
 }
 
-.appSidebar,
-.mobileSidebarDrawer {
+.appShell .appSidebar,
+.appShell .mobileSidebarDrawer {
   background:
     linear-gradient(180deg, color-mix(in oklch, white 94%, var(--secondary)), color-mix(in oklch, var(--secondary) 62%, white));
   border-color: var(--border-subtle);
@@ -10861,6 +10900,28 @@ nav a.active {
   background: var(--primary);
 }
 
+.appShell .sidebarNav a {
+  min-height: 34px;
+  padding: 7px 8px 7px 10px;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  transition: color 150ms var(--ease-out), background-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+}
+
+.appShell .sidebarNav a:hover,
+.appShell .sidebarNav a.active {
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+  color: var(--text-primary);
+}
+
+.appShell .sidebarNav a.active::before {
+  width: 3px;
+  height: 18px;
+  background: var(--primary);
+}
+
 .navIcon,
 .badge,
 .appStatusBadge,
@@ -10888,10 +10949,6 @@ nav a.active {
 
 .panel,
 .card,
-.docsSidebar,
-.docsToc,
-.docsCodeBlock,
-.docsCallout,
 .dashboardHero,
 .dashboardSplit,
 .projectCard,
@@ -10918,10 +10975,6 @@ nav a.active {
 .card,
 .panel,
 .projectCard,
-.docsSidebar,
-.docsToc,
-.docsCodeBlock,
-.docsCallout,
 .emptyState,
 .modal,
 .authPanel,
@@ -10930,7 +10983,7 @@ nav a.active {
 }
 
 .actionButton,
-button:not(.mobileMenuButton):not(.cv-menuButton):not(.cv-workflowSteps button):not(.contextSectionNav button):not(.reviewTab):not(.docsCopyButton),
+button:not(.mobileMenuButton):not(.cv-menuButton):not(.cv-workflowSteps button):not(.contextSectionNav button):not(.reviewTab):not(.docsCopyButton):not(.versionHistoryItem),
 .buttonLink {
   background: var(--primary);
   color: var(--primary-foreground);
@@ -10987,8 +11040,6 @@ pre,
 table,
 td,
 .sectionBlock,
-.docsDefinitionTable div,
-.docsTroubleshooting details,
 .contextSectionContent header,
 .contextSectionContent .contextKbList li,
 .memoryDetailsDisclosure,
@@ -11035,16 +11086,24 @@ td,
   color: var(--danger);
 }
 
-.success,
-.docsCallout.success {
+.success {
   border-color: color-mix(in oklch, var(--success) 28%, white);
   background: color-mix(in oklch, var(--success) 8%, white);
 }
 
-.docsCallout.warning,
+.docsCallout.success {
+  border-color: color-mix(in oklch, var(--success) 18%, transparent);
+  background: color-mix(in oklch, var(--success) 5%, white);
+}
+
 .appStatusBadge.warning {
   border-color: color-mix(in oklch, var(--warning) 28%, white);
   background: color-mix(in oklch, var(--warning) 8%, white);
+}
+
+.docsCallout.warning {
+  border-color: color-mix(in oklch, var(--warning) 18%, transparent);
+  background: color-mix(in oklch, var(--warning) 5%, white);
 }
 
 .contextSectionNav nav button:hover,
@@ -11204,21 +11263,6 @@ select,
 .appShell .apiNextStepPanel,
 .appShell .apiKeysEmptyState,
 .appShell .apiDialog,
-.appShell .mcpSetupSteps,
-.appShell .mcpConfigBlock,
-.appShell .mcpToolSetup,
-.appShell .mcpPromptList,
-.appShell .mcpToolsReference,
-.appShell .mcpTroubleshooting,
-.appShell .mcpSecurityNote,
-.appShell .mcpToolSetup article,
-.appShell .mcpPromptList article,
-.appShell .docsSidebar,
-.appShell .docsToc,
-.appShell .docsCompareTable,
-.appShell .docsDefinitionTable,
-.appShell .docsCodeBlock,
-.appShell .docsCallout,
 .appShell .githubStatusPanel,
 .appShell .githubSectionPanel,
 .appShell .nextStepsPanel,
@@ -11269,11 +11313,6 @@ select,
 .appShell .githubEventItem,
 .appShell .settingsTableRow,
 .appShell .apiKeysTable tr,
-.appShell .docsDefinitionTable div,
-.appShell .docsTroubleshooting details,
-.appShell .mcpToolSetup dl div,
-.appShell .mcpToolsReference dl div,
-.appShell .mcpTroubleshooting dl div,
 .appShell .versionSnapshotPreview article,
 .appShell .versionPreviewGroups article,
 .appShell .contextKbList li,
@@ -11313,15 +11352,12 @@ select,
 .appShell .reviewSegmentedControl button.is-active,
 .appShell .segmentedControl button.is-active,
 .appShell .mcpToolTabs button.isActive,
-.appShell .docsSidebar button.isActive,
-.appShell .docsToc button.isActive,
 .appShell .contextSectionTabs button.isActive {
   border-color: color-mix(in oklch, var(--foreground) 20%, transparent);
   background: color-mix(in oklch, var(--foreground) 6%, white);
   color: var(--text-primary);
 }
 
-.appShell .versionTimelineTrack::before,
 .appShell .githubEventFeed::before,
 .appShell .githubFlowLine::before {
   background: linear-gradient(
@@ -11332,7 +11368,10 @@ select,
   );
 }
 
-.appShell .versionHistoryItem::before,
+.appShell .versionTimelineTrack::before {
+  background: color-mix(in oklch, var(--border) 72%, transparent);
+}
+
 .appShell .versionMarker,
 .appShell .statusDot,
 .appShell .statusDot.success,
@@ -11464,4 +11503,408 @@ select,
 .appShell .modal-overlay,
 .appShell .mobileSidebarOverlay {
   background: color-mix(in oklch, var(--foreground) 22%, transparent);
+}
+
+/* Final authenticated light-theme hardening */
+.appShell .githubStatusPanel,
+.appShell .githubSectionPanel,
+.appShell .nextStepsPanel,
+.appShell .developerFallback,
+.appShell .eventFeedPanel,
+.appShell .webhookConfig,
+.appShell .lastEventMeta,
+.appShell .manualConnectionList > div,
+.appShell .githubEmptyState,
+.appShell .suggestionsQueuePanel,
+.appShell .manualCapturePanel,
+.appShell .reviewSafetyNote,
+.appShell .suggestionReviewItem,
+.appShell .patchDetails,
+.appShell .reviewQueuePanel,
+.appShell .reviewQueueItem,
+.appShell .reviewPatchSummary,
+.appShell .reviewPatchDetails,
+.appShell .reviewPatchDetails section,
+.appShell .apiKeysTableWrap,
+.appShell .apiNextStepPanel,
+.appShell .apiKeysEmptyState {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.appShell .githubStatusPanel,
+.appShell .githubSectionPanel,
+.appShell .nextStepsPanel,
+.appShell .developerFallback,
+.appShell .suggestionsQueuePanel,
+.appShell .manualCapturePanel,
+.appShell .reviewQueuePanel,
+.appShell .apiKeysTableWrap,
+.appShell .apiNextStepPanel,
+.appShell .docsCodeBlock,
+.appShell .docsCallout {
+  border-radius: var(--radius-lg);
+}
+
+.appShell .githubStatusPanel::before,
+.appShell .githubStatusPanel.is-connected::after {
+  display: none;
+}
+
+.appShell .githubMark,
+.appShell .repoIdentity .githubMark {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--muted) 64%, white);
+  box-shadow: none;
+}
+
+.appShell .githubMark span {
+  background: var(--text-primary);
+  box-shadow:
+    -7px 4px 0 -5px var(--text-primary),
+    7px 4px 0 -5px var(--text-primary),
+    0 8px 0 -6px var(--text-primary);
+}
+
+.appShell .panelKicker,
+.appShell .suggestionDetails summary,
+.appShell .repoUrlBlock a,
+.appShell .mcpSetupSteps a,
+.appShell .mcpKeyWarning a {
+  color: var(--text-muted);
+}
+
+.appShell .repoUrlBlock a:hover,
+.appShell .suggestionDetails[open] summary,
+.appShell .mcpSetupSteps a:hover,
+.appShell .mcpKeyWarning a:hover {
+  color: var(--text-primary);
+}
+
+.appShell .fallbackNote,
+.appShell .mcpKeyWarning {
+  border-color: color-mix(in oklch, var(--warning) 28%, white);
+  background: color-mix(in oklch, var(--warning) 9%, white);
+  color: color-mix(in oklch, var(--warning) 55%, black);
+}
+
+.appShell .webhookConfig .kv code,
+.appShell .mcpConfigBlock pre,
+.appShell .docsCodeBlock pre,
+.appShell .versionFullSnapshot pre,
+.appShell .contextMcpPreview pre,
+.appShell .apiRawKeyField code {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: color-mix(in oklch, var(--muted) 70%, white);
+  color: var(--text-secondary);
+}
+
+.appShell .githubSkeleton,
+.appShell .githubSettingsSkeleton,
+.appShell .reviewQueueSkeleton,
+.appShell .versionsSkeleton,
+.appShell .apiKeysSkeleton,
+.appShell .contextKbSkeleton {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.appShell .integrationBadge,
+.appShell .queueBadge,
+.appShell .reviewBadge,
+.appShell .versionChangedSections span,
+.appShell .versionHistoryTopline em,
+.appShell .apiKeyScopes code,
+.appShell .mcpSetupMeta code,
+.appShell .docsStepList span,
+.appShell .contextKbMeta span {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: color-mix(in oklch, var(--muted) 68%, white);
+  color: var(--text-secondary);
+}
+
+.appShell .integrationBadge.success,
+.appShell .queueBadge.success,
+.appShell .reviewBadge.success,
+.appShell .githubMessage.success {
+  border-color: color-mix(in oklch, var(--success) 28%, white);
+  background: color-mix(in oklch, var(--success) 9%, white);
+  color: color-mix(in oklch, var(--success) 58%, black);
+}
+
+.appShell .integrationBadge.warning,
+.appShell .queueBadge.warning,
+.appShell .reviewBadge.warning,
+.appShell .githubMessage.pending {
+  border-color: color-mix(in oklch, var(--warning) 28%, white);
+  background: color-mix(in oklch, var(--warning) 9%, white);
+  color: color-mix(in oklch, var(--warning) 58%, black);
+}
+
+.appShell .integrationBadge.accent,
+.appShell .queueBadge.accent,
+.appShell .reviewBadge.accent {
+  border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--foreground) 5%, white);
+  color: var(--text-secondary);
+}
+
+.appShell .queueBadge.danger,
+.appShell .reviewBadge.danger,
+.appShell .dangerAction:not(:disabled),
+.appShell .githubMessage.error {
+  border-color: color-mix(in oklch, var(--danger) 26%, white);
+  background: color-mix(in oklch, var(--danger) 7%, white);
+  color: var(--danger);
+}
+
+.appShell .segmentedControl,
+.appShell .reviewSegmentedControl,
+.appShell .mcpToolTabs {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--muted) 62%, white);
+}
+
+.appShell .segmentedControl button,
+.appShell .reviewSegmentedControl button,
+.appShell .mcpToolTabs button,
+.appShell .contextSectionTabs button {
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+.appShell .segmentedControl button.is-active,
+.appShell .reviewSegmentedControl button.is-active,
+.appShell .mcpToolTabs button.isActive,
+.appShell .contextSectionTabs button.isActive {
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.appShell .githubEventItem + .githubEventItem .eventContent,
+.appShell .suggestionReviewItem,
+.appShell .reviewQueueItem,
+.appShell .apiKeysTable td,
+.appShell .settingsTableRow {
+  border-color: color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+/* Versions detail: document-style preview, not stacked boxes */
+.appShell .versionsBrowser {
+  border: 1px solid color-mix(in oklch, var(--border) 78%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: none;
+  padding: 18px;
+}
+
+.appShell .versionDetailPanel {
+  border-left-color: color-mix(in oklch, var(--border) 64%, transparent);
+  background: transparent;
+  box-shadow: none;
+  padding-left: 24px;
+}
+
+.appShell .versionDetailPanel header,
+.appShell .versionFullSnapshot,
+.appShell .versionAllChanges,
+.appShell .versionSnapshotPreview article,
+.appShell .versionPreviewGroups article,
+.appShell .versionDetailChanges dl div {
+  border-color: color-mix(in oklch, var(--border) 56%, transparent);
+}
+
+.appShell .versionDetailSummary,
+.appShell .versionDetailChanges,
+.appShell .versionDetailPreviewItems,
+.appShell .versionSnapshotPreview,
+.appShell .versionFullSnapshot,
+.appShell .versionAllChanges {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.appShell .versionSnapshotPreview,
+.appShell .versionPreviewGroups {
+  padding: 14px 0 0;
+}
+
+.appShell .versionSnapshotPreview > div,
+.appShell .versionPreviewGroups {
+  gap: 0;
+}
+
+.appShell .versionSnapshotPreview article,
+.appShell .versionPreviewGroups article {
+  padding: 12px 0;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.appShell .versionChangedSections span {
+  background: color-mix(in oklch, var(--muted) 64%, white);
+}
+
+/* Dashboard overview: remove remaining dark metric strip */
+.appShell .metricStrip {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.appShell .overview-pill {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 96%, transparent), color-mix(in oklch, var(--secondary) 42%, white)),
+    var(--card);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.appShell .overview-pill span {
+  color: var(--text-muted);
+}
+
+.appShell .overview-pill strong {
+  color: var(--text-primary);
+}
+
+.appShell .vault-item,
+.appShell .settingsSection {
+  border-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 96%, transparent), color-mix(in oklch, var(--secondary) 34%, white)),
+    var(--card);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.appShell .vault-item:hover,
+.appShell .settingsSection:hover {
+  border-color: var(--border-strong);
+  background: var(--card);
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.appShell .vault-item-name,
+.appShell .settingsSectionHeader h2,
+.appShell .inlineFlowSection h2 {
+  color: var(--text-primary);
+}
+
+.appShell .vault-item-desc,
+.appShell .settingsSectionHeader p,
+.appShell .inlineFlowSection p {
+  color: var(--text-secondary);
+}
+
+.appShell .logoutButton {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--card) 86%, var(--secondary));
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.appShell .logoutButton:hover {
+  background: var(--card);
+  color: var(--text-primary);
+}
+
+.appShell .mobileShellBar {
+  border-bottom-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: color-mix(in oklch, var(--background) 88%, white);
+  color: var(--text-primary);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.appShell .mobileSidebarDrawer {
+  border-right-color: color-mix(in oklch, var(--border) 78%, transparent);
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: 18px 0 48px color-mix(in oklch, var(--foreground) 14%, transparent);
+}
+
+.appShell .mobileMenuButton {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--card) 86%, var(--secondary));
+  box-shadow: none;
+}
+
+.appShell .mobileMenuButton span {
+  background: var(--text-primary);
+}
+
+.appShell .contextTextButton {
+  width: fit-content;
+  margin-top: 12px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--card) 86%, var(--secondary));
+  color: var(--text-secondary);
+  box-shadow: none;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition:
+    background-color 150ms var(--ease-out),
+    border-color 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+
+.appShell .contextTextButton:hover {
+  border-color: var(--border-strong);
+  background: var(--card);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.appShell .contextTextButton:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 12%, transparent);
+}
+
+@media (max-width: 720px) {
+  .appShell .versionsBrowser {
+    padding: 12px;
+  }
+
+  .appShell .versionDetailPanel {
+    border-left: 0;
+    border-top: 1px solid color-mix(in oklch, var(--border) 64%, transparent);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+
+  .appShell .githubStatusPanel,
+  .appShell .githubSectionPanel,
+  .appShell .nextStepsPanel,
+  .appShell .developerFallback,
+  .appShell .suggestionsQueuePanel,
+  .appShell .manualCapturePanel,
+  .appShell .reviewQueuePanel,
+  .appShell .apiKeysTableWrap,
+  .appShell .apiNextStepPanel,
+  .appShell .docsCodeBlock,
+  .appShell .docsCallout {
+    border-radius: var(--radius-md);
+  }
+
+  .appShell .mcpConfigBlock pre,
+  .appShell .docsCodeBlock pre,
+  .appShell .versionFullSnapshot pre,
+  .appShell .contextMcpPreview pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }

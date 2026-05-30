@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 type DocsSection = {
   id: string;
@@ -364,7 +364,7 @@ function DocsSidebar({ activeId, onNavigate }: { activeId: string; onNavigate: (
   const groups = Array.from(new Set(sections.map((section) => section.group)));
   const activeGroup = sections.find((section) => section.id === activeId)?.group;
   return (
-    <aside className="docsSidebar">
+    <aside className="docsSidebar contextSectionNav">
       <label className="docsMobileSelect">
         Section
         <select value={activeId} onChange={(event) => onNavigate(event.target.value)}>
@@ -391,7 +391,7 @@ function DocsToc({ activeId, onNavigate }: { activeId: string; onNavigate: (id: 
   const activeSection = useMemo(() => sections.find((section) => section.id === activeId) ?? sections[0], [activeId]);
   const tocItems = activeSection.pageHeadings ?? [activeSection.toc ?? activeSection.title];
   return (
-    <aside className="docsToc">
+    <aside className="docsToc contextSectionNav">
       <h2>On this page</h2>
       <nav aria-label="On this page">
         {tocItems.map((item, index) => (
@@ -406,9 +406,17 @@ function DocsToc({ activeId, onNavigate }: { activeId: string; onNavigate: (id: 
 
 export function DocsPage() {
   const [activeId, setActiveId] = useState("overview");
+  const activeIdRef = useRef(activeId);
+
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   function navigate(id: string) {
-    setActiveId(id);
+    if (activeIdRef.current !== id) {
+      activeIdRef.current = id;
+      setActiveId(id);
+    }
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.history.replaceState(null, "", `#${id}`);
   }
@@ -425,14 +433,34 @@ export function DocsPage() {
 
     if (sectionElements.length === 0) return;
 
+    const visibleSections = new Map<string, number>();
+    let frameId: number | null = null;
+
+    const updateActiveSection = () => {
+      frameId = null;
+      const nextVisible = Array.from(visibleSections.entries())
+        .sort((a, b) => a[1] - b[1])[0]?.[0];
+
+      if (nextVisible && activeIdRef.current !== nextVisible) {
+        activeIdRef.current = nextVisible;
+        setActiveId(nextVisible);
+      }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        entries.forEach((entry) => {
+          const id = entry.target.id;
+          if (!id) return;
+          if (entry.isIntersecting) {
+            visibleSections.set(id, entry.boundingClientRect.top);
+          } else {
+            visibleSections.delete(id);
+          }
+        });
 
-        if (visible?.target.id) {
-          setActiveId(visible.target.id);
+        if (frameId === null) {
+          frameId = window.requestAnimationFrame(updateActiveSection);
         }
       },
       {
@@ -445,6 +473,7 @@ export function DocsPage() {
     sectionElements.forEach((element) => observer.observe(element));
 
     return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
       observer.disconnect();
     };
   }, []);
