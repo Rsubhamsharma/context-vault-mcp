@@ -17,3 +17,5 @@ suggestionRoutes.get(
 );
 suggestionRoutes.post("/:suggestionId/apply", requireAuth, asyncHandler(suggestionController.applySuggestion));
 suggestionRoutes.post("/:suggestionId/reject", requireAuth, asyncHandler(suggestionController.rejectSuggestion));
+suggestionRoutes.post("/:suggestionId/reopen", requireAuth, asyncHandler(suggestionController.reopenSuggestion));
+suggestionRoutes.delete("/:suggestionId", requireAuth, asyncHandler(suggestionController.deleteSuggestion));

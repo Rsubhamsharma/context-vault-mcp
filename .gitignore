@@ -68,6 +68,9 @@ blob-report/
 **/playwright-report/
 **/blob-report/
 landing-*.png
+/context-vault-*.png
+/page-*.png
+/screenshot-*.png
 
 # MCP / local demo runtime files
 .mcp-cache/

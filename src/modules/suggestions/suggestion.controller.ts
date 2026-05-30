@@ -44,5 +44,19 @@ export const suggestionController = {
     const { projectId, suggestionId } = suggestionIdParamsSchema.parse(req.params);
     const suggestion = await suggestionService.rejectSuggestion(userId, projectId, suggestionId);
     res.json({ suggestion });
+  },
+
+  async reopenSuggestion(req: Request, res: Response): Promise<void> {
+    const userId = getUserId(req);
+    const { projectId, suggestionId } = suggestionIdParamsSchema.parse(req.params);
+    const suggestion = await suggestionService.reopenSuggestion(userId, projectId, suggestionId);
+    res.json({ suggestion });
+  },
+
+  async deleteSuggestion(req: Request, res: Response): Promise<void> {
+    const userId = getUserId(req);
+    const { projectId, suggestionId } = suggestionIdParamsSchema.parse(req.params);
+    const result = await suggestionService.deleteSuggestion(userId, projectId, suggestionId);
+    res.json(result);
   }
 };

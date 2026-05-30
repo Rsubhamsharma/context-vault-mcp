@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { api, authStore } from "./api/client";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { ApiRequestError, api, authStore } from "./api/client";
 import { AppLayout } from "./pages/AppLayout";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
 import { AuthPage } from "./pages/AuthPage";
@@ -16,15 +16,68 @@ import { VersionsPage } from "./pages/VersionsPage";
 import "./styles.css";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  return authStore.getToken() ? <>{children}</> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  const [status, setStatus] = useState<"checking" | "authenticated" | "anonymous" | "expired">(
+    authStore.getToken() ? "checking" : "anonymous"
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = authStore.getToken();
+
+    if (!token) {
+      setStatus("anonymous");
+      return;
+    }
+
+    setStatus("checking");
+    void api.me()
+      .then(() => {
+        if (!cancelled) setStatus("authenticated");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        authStore.clear();
+        setStatus(error instanceof ApiRequestError && error.status === 401 ? "expired" : "anonymous");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
+
+  if (status === "checking") {
+    return (
+      <main className="authGateShell" aria-live="polite">
+        <div className="authGatePanel">
+          <span className="authGateMark" aria-hidden="true" />
+          <p>Checking session...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "authenticated") {
+    return <>{children}</>;
+  }
+
+  return (
+    <Navigate
+      to={status === "expired" ? "/login?reason=session" : "/login"}
+      replace
+      state={{ from: location }}
+    />
+  );
 }
 
 function ProjectDeepLink({ target }: { target: "mcp" | "docs" | "github" }) {
+  const location = useLocation();
   const [to, setTo] = useState<string | null>(null);
+  const [requiresLogin, setRequiresLogin] = useState(false);
 
   useEffect(() => {
     if (!authStore.getToken()) {
-      setTo("/login");
+      setRequiresLogin(true);
       return;
     }
 
@@ -36,7 +89,20 @@ function ProjectDeepLink({ target }: { target: "mcp" | "docs" | "github" }) {
       .catch(() => setTo("/projects"));
   }, [target]);
 
-  return to ? <Navigate to={to} replace /> : null;
+  if (requiresLogin) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return to ? (
+    <Navigate to={to} replace />
+  ) : (
+    <main className="authGateShell" aria-live="polite">
+      <div className="authGatePanel">
+        <span className="authGateMark" aria-hidden="true" />
+        <p>Opening project...</p>
+      </div>
+    </main>
+  );
 }
 
 createRoot(document.getElementById("root")!).render(

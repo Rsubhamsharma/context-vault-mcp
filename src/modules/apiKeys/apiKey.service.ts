@@ -57,8 +57,15 @@ export const apiKeyService = {
   },
 
   async listApiKeys(userId: string) {
+    await prisma.apiKey.deleteMany({
+      where: {
+        userId,
+        revokedAt: { not: null }
+      }
+    });
+
     const apiKeys = await prisma.apiKey.findMany({
-      where: { userId },
+      where: { userId, revokedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -86,9 +93,8 @@ export const apiKeyService = {
       throw new ApiError(404, "API key not found");
     }
 
-    return prisma.apiKey.update({
+    return prisma.apiKey.delete({
       where: { id: apiKeyId },
-      data: { revokedAt: apiKey.revokedAt ?? new Date() },
       select: {
         id: true,
         name: true,

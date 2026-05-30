@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticateJwtOrApiKey, requireAuth } from "../../middleware/auth.middleware";
+import { requireAuth } from "../../middleware/auth.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { githubController } from "./github.controller";
 
@@ -12,7 +12,7 @@ githubRoutes.post("/app/webhook", asyncHandler(githubController.handleAppWebhook
 
 projectGithubRoutes.get(
   "/app/install-url",
-  authenticateJwtOrApiKey(["context:read"]),
+  requireAuth,
   asyncHandler(githubController.getInstallUrl)
 );
 projectGithubRoutes.use(requireAuth);

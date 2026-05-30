@@ -1,40 +1,159 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api, Project } from "../api/client";
-import { Empty, ErrorBox, Loading } from "../components/State";
+import { ErrorBox, Loading } from "../components/State";
 import { formatDate } from "../utils";
 
-const workflowSteps = [
-  ["Connect GitHub App", "Link the repository that should feed project memory."],
-  ["Push code or finish AI task", "GitHub, MCP, or manual capture sends a meaningful update."],
-  ["Context Vault creates a smart suggestion", "Changes become a reviewable memory patch, not an automatic mutation."],
-  ["User reviews and applies", "You decide what becomes official project context."],
-  ["Versioned project memory updates", "Every applied change creates an immutable context version."],
-  ["Any AI tool loads context through MCP", "Codex, Cursor, Claude, and other clients share the same memory."]
-];
+function StatusChip({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "ready" | "warning" }) {
+  return <span className={`status-chip ${tone}`}>{children}</span>;
+}
 
-const demoChecklist = [
-  "Project context initialized",
-  "MCP API key created",
-  "GitHub App connected",
-  "Smart suggestion created",
-  "Suggestion applied",
-  "Version history updated",
-  "context_load tested in AI CLI"
-];
+function ActionButton({ children, onClick, type = "button", loading = false }: { children: React.ReactNode; onClick?: () => void; type?: "button" | "submit"; loading?: boolean }) {
+  return (
+    <button className="actionButton" type={type} onClick={onClick} disabled={loading}>
+      {loading ? "Creating..." : children}
+    </button>
+  );
+}
+
+function CreateVaultDialog({ isOpen, onClose, onCreate }: { isOpen: boolean; onClose: () => void; onCreate: (project?: Project) => void }) {
+  const [form, setForm] = useState({ name: "", description: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await api.createProject({ name: form.name.trim(), description: form.description.trim() || undefined });
+      onCreate(result.project);
+      setForm({ name: "", description: "" });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create vault");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay vaultDialogOverlay" role="presentation" onMouseDown={onClose}>
+      <section className="modal-content vaultDialog" role="dialog" aria-modal="true" aria-labelledby="create-vault-title" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <span className="dialogKicker">New memory space</span>
+          <h3 id="create-vault-title">Create new vault</h3>
+          <p>Start a new AI-readable memory space for a project.</p>
+        </div>
+        <form onSubmit={submit}>
+          <div className="modal-body">
+            {error && <ErrorBox message={error} />}
+            <label>Project name
+              <input
+                autoFocus
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                placeholder="Core Infrastructure"
+                required
+              />
+            </label>
+            <label>Description
+              <textarea
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+                placeholder="What should AI tools remember about this project?"
+              />
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="ghostButton" onClick={onClose}>Cancel</button>
+            <ActionButton type="submit" loading={loading}>Create vault</ActionButton>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function MetricStrip({ projects }: { projects: Project[] }) {
+  const latestVersion = Math.max(0, ...projects.map((project) => project.context?.currentVersionNumber ?? 0));
+  const latestUpdate = projects
+    .map((project) => project.context?.updatedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const repositoryCount = projects.filter((project) => project.repoUrl).length;
+
+  const metrics = [
+    ["Total vaults", String(projects.length)],
+    ["Latest version", latestVersion ? `v${latestVersion}` : "-"],
+    ["Last memory sync", latestUpdate ? formatDate(latestUpdate) : "Not synced"],
+    ["Active repositories", String(repositoryCount)]
+  ];
+
+  return (
+    <div className="workspace-overview metricStrip">
+      {metrics.map(([label, value]) => (
+        <div className="overview-pill" key={label}>
+          <span>{label}</span>
+          <strong>{value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjectListItem({ project }: { project: Project }) {
+  return (
+    <article className="vault-item">
+      <Link className="vault-item-main" to={`/projects/${project.id}/context`}>
+        <span className="vault-item-name">{project.name}</span>
+        <span className="vault-item-desc">{project.description || "No description provided."}</span>
+      </Link>
+      <div className="vault-item-meta">
+        <span className="versionBadge">v{project.context?.currentVersionNumber ?? 0}</span>
+      </div>
+      <div className="vault-item-meta">
+        <span>{project.context?.updatedAt ? formatDate(project.context.updatedAt) : "Never synced"}</span>
+      </div>
+      <div className="vault-status-chips">
+        <StatusChip tone="ready">Memory ready</StatusChip>
+        <StatusChip tone={project.repoUrl ? "ready" : "warning"}>{project.repoUrl ? "GitHub connected" : "Not connected"}</StatusChip>
+        <StatusChip tone={(project.context?.currentVersionNumber ?? 0) > 0 ? "ready" : "warning"}>{(project.context?.currentVersionNumber ?? 0) > 0 ? "MCP ready" : "Needs key"}</StatusChip>
+      </div>
+      <div className="vault-item-action">
+        <Link className="openVaultButton" to={`/projects/${project.id}/context`}>Open</Link>
+      </div>
+    </article>
+  );
+}
 
 export function ProjectsPage() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [search, setSearch] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
       const result = await api.projects();
       setProjects(result.projects);
+      setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load projects");
     } finally {
@@ -42,77 +161,78 @@ export function ProjectsPage() {
     }
   }
 
-  async function create(event: FormEvent) {
-    event.preventDefault();
-    await api.createProject({ name, description: description || undefined });
-    setName("");
-    setDescription("");
-    await load();
+  useEffect(() => { void load(); }, []);
+
+  const filteredProjects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return projects;
+    return projects.filter((project) =>
+      project.name.toLowerCase().includes(query) ||
+      (project.description?.toLowerCase().includes(query) ?? false)
+    );
+  }, [projects, search]);
+
+  function handleCreated(project?: Project) {
+    void load();
+    if (project) navigate(`/projects/${project.id}/context`);
   }
 
-  useEffect(() => { void load(); }, []);
-  const latestProject = projects[0];
-
   return (
-    <section>
-      <header className="pageHeader"><div><h1>Dashboard</h1><p>Choose the project memory source your AI tools should use.</p></div></header>
+    <section className="projects-console">
+      <header className="console-header pageHeader">
+        <div className="console-header-text">
+          <h1>Projects</h1>
+          <p>Create or open a vault to manage AI-readable project memory across tools.</p>
+        </div>
+        <div className="console-actions">
+          <Link className="ghostButton" to="/docs">View Docs</Link>
+          <ActionButton onClick={() => setIsDialogOpen(true)}>New Vault</ActionButton>
+        </div>
+      </header>
+
       {error && <ErrorBox message={error} />}
-      <div className="panel dashboardHero">
-        <div>
-          <span className="eyebrow">Project memory layer</span>
-          <h2>GitHub stores code. Context Vault stores AI-readable project memory.</h2>
-          <p>Switch AI tools without losing project understanding, then review every proposed memory change before it becomes official.</p>
-        </div>
-        <div className="statusCards">
-          <div><span>Projects</span><strong>{projects.length}</strong></div>
-          <div><span>Current version</span><strong>{latestProject?.context?.currentVersionNumber ? `v${latestProject.context.currentVersionNumber}` : "-"}</strong></div>
-          <div><span>Last update</span><strong>{latestProject?.context?.updatedAt ? formatDate(latestProject.context.updatedAt) : "No context"}</strong></div>
-        </div>
-      </div>
-      <div className="panel">
-        <div className="panelHeader"><h2>Context Vault workflow</h2><span className="badge">Review-first</span></div>
-        <div className="workflowGrid compactWorkflow">
-          {workflowSteps.map(([title, description], index) => (
-            <div className="workflowStep" key={title}>
-              <span className="stepNumber">{index + 1}</span>
-              <strong>{title}</strong>
-              <p>{description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="split dashboardSplit">
-        <form className="panel form compact" onSubmit={create}>
-          <h2>Create project</h2>
-          <p className="muted">Start a new source of truth for AI-readable project memory.</p>
-          <label>Name<input value={name} onChange={(e) => setName(e.target.value)} required /></label>
-          <label>Description<input value={description} onChange={(e) => setDescription(e.target.value)} /></label>
-          <button>Create project</button>
-        </form>
-        <div className="panel">
-          <div className="panelHeader"><h2>Demo checklist</h2><span className="badge">Setup</span></div>
-          <ul className="checklist">
-            {demoChecklist.map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </div>
-      </div>
-      {loading ? <Loading /> : projects.length === 0 ? <Empty>No projects yet.</Empty> : (
-        <div className="panel">
-          <div className="panelHeader"><h2>Projects</h2><span className="badge">{projects.length} total</span></div>
-          <div className="projectList">
-            {projects.map((project) => (
-              <article className="projectRow" key={project.id}>
-                <div>
-                  <h3>{project.name}</h3>
-                  <p>{project.description || "No description"}</p>
-                  <span className="muted">Created {formatDate(project.createdAt)}</span>
-                </div>
-                <Link className="buttonLink" to={`/projects/${project.id}/context`}>Open</Link>
-              </article>
-            ))}
+
+      <MetricStrip projects={projects} />
+
+      <section className="vaults-section surfacePanel">
+        <div className="section-title-row">
+          <div>
+            <h2>Vaults</h2>
+            <p>{filteredProjects.length} visible of {projects.length} total</p>
+          </div>
+          <div className="vault-search-wrapper searchInput">
+            <span className="vault-search-icon" aria-hidden="true"></span>
+            <input
+              className="vault-search"
+              placeholder="Search vaults..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </div>
         </div>
-      )}
+
+        {loading ? <Loading /> : filteredProjects.length === 0 ? (
+          <div className="empty-vault-state">
+            <div className="emptyStateMark" aria-hidden="true"><span /></div>
+            <h3>{projects.length ? "No vaults match your search" : "Create your first vault"}</h3>
+            <p>Store project goals, decisions, constraints, and AI handoff context in one place.</p>
+            <div className="emptyStateActions">
+              <ActionButton onClick={() => setIsDialogOpen(true)}>Create vault</ActionButton>
+              <Link className="ghostButton" to="/docs">Read docs</Link>
+            </div>
+          </div>
+        ) : (
+          <div className="vault-list">
+            {filteredProjects.map((project) => <ProjectListItem key={project.id} project={project} />)}
+          </div>
+        )}
+      </section>
+
+      <CreateVaultDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onCreate={handleCreated}
+      />
     </section>
   );
 }

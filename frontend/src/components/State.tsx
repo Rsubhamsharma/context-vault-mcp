@@ -1,6 +1,6 @@
 export function Loading() {
   return (
-    <div className="state loadingState">
+    <div className="state loadingState" aria-label="Loading" aria-live="polite">
       <span></span>
       <span></span>
       <span></span>
@@ -13,5 +13,5 @@ export function Empty({ children }: { children: React.ReactNode }) {
 }
 
 export function ErrorBox({ message }: { message: string }) {
-  return <div className="error">{message}</div>;
+  return <div className="error" role="alert">{message}</div>;
 }

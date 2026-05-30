@@ -132,6 +132,13 @@ export const authStore = {
   clear: () => localStorage.removeItem(tokenKey)
 };
 
+export class ApiRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = authStore.getToken();
   const response = await fetch(`${API_URL}${path}`, {
@@ -146,7 +153,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
   if (!response.ok) {
-    throw new Error(data?.error?.message ?? "Request failed");
+    const message = data?.error?.message ?? "Request failed";
+    if (response.status === 401 && token) {
+      authStore.clear();
+      window.dispatchEvent(new CustomEvent("context-vault:session-expired"));
+    }
+    throw new ApiRequestError(message, response.status);
   }
   return data as T;
 }
@@ -162,6 +174,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body)
     }),
+  me: () => request<{ user: unknown }>("/api/auth/me"),
   projects: () => request<{ projects: Project[] }>("/api/projects"),
   createProject: (body: { name: string; description?: string; repoUrl?: string; defaultBranch?: string }) =>
     request<{ project: Project }>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
@@ -182,6 +195,10 @@ export const api = {
     }),
   rejectSuggestion: (projectId: string, suggestionId: string) =>
     request(`/api/projects/${projectId}/suggestions/${suggestionId}/reject`, { method: "POST" }),
+  reopenSuggestion: (projectId: string, suggestionId: string) =>
+    request<{ suggestion: Suggestion }>(`/api/projects/${projectId}/suggestions/${suggestionId}/reopen`, { method: "POST" }),
+  deleteSuggestion: (projectId: string, suggestionId: string) =>
+    request<{ success: boolean }>(`/api/projects/${projectId}/suggestions/${suggestionId}`, { method: "DELETE" }),
   githubConnection: (projectId: string) =>
     request<GitHubConnectionResult>(`/api/projects/${projectId}/github/connection`),
   githubInstallUrl: (projectId: string) =>

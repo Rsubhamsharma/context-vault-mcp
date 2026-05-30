@@ -182,5 +182,51 @@ export const suggestionService = {
       where: { id: suggestionId },
       data: { status: SuggestionStatus.rejected }
     });
+  },
+
+  async reopenSuggestion(userId: string, projectId: string, suggestionId: string) {
+    await projectService.assertProjectOwner(userId, projectId);
+
+    const suggestion = await prisma.contextSuggestion.findFirst({
+      where: { id: suggestionId, projectId }
+    });
+
+    if (!suggestion) {
+      throw new ApiError(404, "Suggestion not found");
+    }
+
+    if (suggestion.status !== SuggestionStatus.rejected) {
+      throw new ApiError(400, "Only rejected suggestions can be reopened.");
+    }
+
+    return prisma.contextSuggestion.update({
+      where: { id: suggestionId },
+      data: {
+        status: SuggestionStatus.pending,
+        appliedAt: null
+      }
+    });
+  },
+
+  async deleteSuggestion(userId: string, projectId: string, suggestionId: string) {
+    await projectService.assertProjectOwner(userId, projectId);
+
+    const suggestion = await prisma.contextSuggestion.findFirst({
+      where: { id: suggestionId, projectId }
+    });
+
+    if (!suggestion) {
+      throw new ApiError(404, "Suggestion not found");
+    }
+
+    if (suggestion.status === SuggestionStatus.pending) {
+      throw new ApiError(400, "Pending suggestions must be applied or rejected before deletion.");
+    }
+
+    await prisma.contextSuggestion.delete({
+      where: { id: suggestionId }
+    });
+
+    return { success: true };
   }
 };
