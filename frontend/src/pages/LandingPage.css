@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;550;600;650&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;550;600;650&family=Instrument+Sans:wght@400;500;600;650;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 .cv-landingPage {
   --cv-bg: #05070b;
@@ -1934,4 +1934,561 @@
     filter: none !important;
     transform: none !important;
   }
+}
+
+/* Premium light mode for the landing surface */
+.cv-landingPage {
+  --font-instrument: "Instrument Sans", "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-instrument-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-jetbrains: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --font-sans: var(--font-instrument);
+  --font-display: var(--font-instrument-serif);
+  --font-mono: var(--font-jetbrains);
+
+  --background: oklch(0.985 0.002 90);
+  --foreground: oklch(0.12 0.01 60);
+  --primary: oklch(0.12 0.01 60);
+  --primary-foreground: oklch(0.985 0.002 90);
+  --secondary: oklch(0.96 0.005 90);
+  --muted: oklch(0.94 0.005 90);
+  --muted-foreground: oklch(0.45 0.02 60);
+  --card: oklch(1 0 0);
+  --border: oklch(0.88 0.01 90);
+  --input: oklch(0.92 0.01 90);
+  --ring: oklch(0.12 0.01 60);
+  --chart-1: oklch(0.12 0.01 60);
+  --chart-2: oklch(0.35 0.02 60);
+  --chart-3: oklch(0.55 0.02 60);
+  --chart-4: oklch(0.70 0.02 60);
+  --chart-5: oklch(0.85 0.01 60);
+
+  --cv-bg: var(--background);
+  --cv-bg-soft: var(--secondary);
+  --cv-surface: color-mix(in oklch, var(--card) 86%, transparent);
+  --cv-surface-strong: var(--card);
+  --cv-border: color-mix(in oklch, var(--border) 74%, transparent);
+  --cv-border-strong: var(--border);
+  --cv-text: var(--foreground);
+  --cv-muted: var(--muted-foreground);
+  --cv-soft: color-mix(in oklch, var(--muted-foreground) 72%, white);
+  --cv-accent: var(--foreground);
+  --cv-accent-2: color-mix(in oklch, var(--foreground) 70%, var(--muted-foreground));
+  --cv-success: oklch(0.42 0.08 145);
+  --cv-warning: oklch(0.58 0.08 82);
+  --cv-font-heading: var(--font-display);
+  --cv-font-body: var(--font-sans);
+  --cv-font-mono: var(--font-mono);
+
+  color: var(--cv-text);
+  background:
+    radial-gradient(circle at 82% 2%, color-mix(in oklch, var(--muted) 78%, transparent), transparent 30rem),
+    radial-gradient(circle at 8% 18%, color-mix(in oklch, var(--secondary) 82%, transparent), transparent 26rem),
+    linear-gradient(180deg, oklch(1 0 0 / 0.88), var(--background) 42%, color-mix(in oklch, var(--secondary) 42%, white));
+  font-family: var(--cv-font-body);
+}
+
+.cv-landingPage::before {
+  opacity: 0.52;
+  background-image:
+    linear-gradient(color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  mask-image: radial-gradient(circle at 50% 12%, black, transparent 68%);
+}
+
+.cv-landingPage::after {
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+.cv-navShell {
+  border-bottom-color: var(--cv-border);
+  background: color-mix(in oklch, var(--background) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.cv-brand,
+.cv-hero h1,
+.cv-sectionHeader h2,
+.cv-finalCta h2,
+.cv-painRow h3,
+.cv-featureItem h3,
+.cv-suggestionPreview h3,
+.cv-dashboardTop h3,
+.cv-dashboardCards h4,
+.cv-audienceRows h3,
+.cv-footerBrand div,
+.cv-compareColumn h3,
+.cv-workflowSteps button strong,
+.cv-glassPanel h3 {
+  color: var(--cv-text);
+  font-family: var(--cv-font-heading);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.cv-brand,
+.cv-footerBrand div,
+.cv-dashboardMock aside div {
+  font-family: var(--cv-font-body);
+  font-weight: 650;
+}
+
+.cv-logoMark {
+  border-color: color-mix(in oklch, var(--foreground) 16%, transparent);
+  background:
+    radial-gradient(circle at 30% 18%, color-mix(in oklch, white 74%, transparent), transparent 48%),
+    color-mix(in oklch, var(--secondary) 72%, white);
+  box-shadow: inset 0 1px 0 white, 0 10px 26px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.cv-logoMark span {
+  border-color: color-mix(in oklch, var(--foreground) 58%, transparent);
+  box-shadow: none;
+}
+
+.cv-logoMark i {
+  background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--foreground) 36%, transparent), transparent);
+}
+
+.cv-desktopNav a,
+.cv-linkButton,
+.cv-mobileNav a,
+.cv-heroBody,
+.cv-sectionHeader p,
+.cv-problemCopy p,
+.cv-painRow p,
+.cv-featureItem p,
+.cv-suggestionPreview p,
+.cv-dashboardTop p,
+.cv-dashboardCards p,
+.cv-audienceRows p,
+.cv-finalCta p,
+.cv-footer p,
+.cv-marqueeSection p,
+.cv-workflowSteps button,
+.cv-workflowSteps button small,
+.cv-workflowState p,
+.cv-safetyList p,
+.cv-compareColumn p,
+.cv-footerColumns a {
+  color: var(--cv-muted);
+}
+
+.cv-desktopNav a:hover,
+.cv-linkButton:hover {
+  color: var(--cv-text);
+  background: color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.cv-desktopNav a::after {
+  background: var(--cv-text);
+}
+
+.cv-primaryButton,
+.cv-landingPage .cv-primaryButton {
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: 0 12px 30px color-mix(in oklch, var(--foreground) 14%, transparent);
+}
+
+.cv-secondaryButton,
+.cv-landingPage .cv-secondaryButton {
+  color: var(--cv-text);
+  border-color: var(--cv-border-strong);
+  background: color-mix(in oklch, var(--card) 78%, transparent);
+  box-shadow: none;
+}
+
+.cv-landingPage .cv-primaryButton:hover {
+  background: color-mix(in oklch, var(--primary) 86%, white);
+  border-color: color-mix(in oklch, var(--primary) 86%, white);
+  box-shadow: 0 14px 34px color-mix(in oklch, var(--foreground) 16%, transparent);
+}
+
+.cv-landingPage .cv-secondaryButton:hover {
+  background: var(--card);
+  border-color: color-mix(in oklch, var(--foreground) 24%, transparent);
+}
+
+.cv-menuButton,
+.cv-mobileNav,
+.cv-glassPanel,
+.cv-commandChip,
+.cv-connectedBadge,
+.cv-painRows,
+.cv-painRow,
+.cv-comparisonPanel,
+.cv-workflowSteps button,
+.cv-workflowVisual,
+.cv-githubFlow,
+.cv-suggestionPreview,
+.cv-codePanel,
+.cv-dashboardMock,
+.cv-shieldVisual,
+.cv-featureItem,
+.cv-featureVisual,
+.cv-workflowMap,
+.cv-workflowState,
+.cv-flowLabels span,
+.cv-dashboardCards article,
+.cv-metricsSection,
+.cv-metric,
+.cv-audienceRows,
+.cv-audienceRows article,
+.cv-finalCta {
+  border-color: var(--cv-border);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 92%, transparent), color-mix(in oklch, var(--card) 78%, var(--secondary))),
+    var(--card);
+  box-shadow: 0 18px 46px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.cv-landingPage .cv-menuButton {
+  border-color: var(--cv-border-strong);
+  background: color-mix(in oklch, var(--card) 82%, transparent);
+  box-shadow: 0 12px 28px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.cv-painRows,
+.cv-audienceRows,
+.cv-metricsSection {
+  background: var(--cv-border);
+}
+
+.cv-painRow,
+.cv-audienceRows article,
+.cv-metric {
+  box-shadow: none;
+}
+
+.cv-menuButton span {
+  background: var(--cv-text);
+}
+
+.cv-heroKicker,
+.cv-commandChips code,
+.cv-workflowState code,
+.cv-panelChrome,
+.cv-suggestionMeta,
+.cv-dashboardTop span,
+.cv-dashboardCards span,
+.cv-commandChip {
+  border-color: color-mix(in oklch, var(--foreground) 13%, transparent);
+  background: color-mix(in oklch, var(--muted) 68%, white);
+  color: var(--cv-muted);
+  font-family: var(--cv-font-mono);
+}
+
+.cv-continueLine,
+.cv-trustLine,
+.cv-memoryRows p,
+.cv-versionPanel p,
+.cv-flowLabels span,
+.cv-workflowTrack div.is-active,
+.cv-codePanel code,
+.cv-suggestionPreview li,
+.cv-memoryColumn p,
+.cv-dashboardMock aside div,
+.cv-dashboardMock aside span.is-active,
+.cv-footerColumns h3 {
+  color: var(--cv-text);
+}
+
+.cv-continueLine span,
+.cv-workflowSteps button span,
+.cv-panelChrome strong,
+.cv-suggestionMeta strong {
+  color: var(--cv-text);
+}
+
+.cv-memoryRows p,
+.cv-versionPanel p,
+.cv-codePanel pre,
+.cv-codePanel code,
+.cv-workflowTrack div i,
+.cv-dashboardMock aside span,
+.cv-patchLines span {
+  border-color: var(--cv-border);
+  background: color-mix(in oklch, var(--muted) 62%, white);
+}
+
+.cv-productStage::before {
+  background:
+    radial-gradient(circle at 52% 46%, color-mix(in oklch, var(--foreground) 9%, transparent), transparent 25%),
+    radial-gradient(circle at 44% 54%, color-mix(in oklch, var(--muted) 68%, transparent), transparent 40%);
+  filter: blur(18px);
+}
+
+.cv-contextWave span {
+  border-color: color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.cv-marquee {
+  border-block-color: var(--cv-border);
+}
+
+.cv-marquee span {
+  border-color: var(--cv-border);
+  background: color-mix(in oklch, var(--card) 76%, transparent);
+  color: var(--cv-muted);
+}
+
+.cv-featureItem:hover,
+.cv-suggestionPreview:hover {
+  border-color: color-mix(in oklch, var(--foreground) 20%, transparent);
+  background: var(--card);
+  box-shadow: 0 20px 48px color-mix(in oklch, var(--foreground) 10%, transparent);
+}
+
+.cv-workflowSteps button.is-active,
+.cv-dashboardMock aside span.is-active {
+  border-color: color-mix(in oklch, var(--foreground) 18%, transparent);
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.cv-workflowProgress {
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.cv-workflowProgress span,
+.cv-workflowTrack b,
+.cv-compareBridge i,
+.cv-mcpNodesVisual i,
+.cv-githubMiniVisual i,
+.cv-keyVisual i,
+.cv-shieldMiniVisual i,
+.cv-shieldVisual i {
+  background: linear-gradient(90deg, transparent, var(--foreground), transparent);
+}
+
+.cv-safetyList p span,
+.cv-versionPanel i,
+.cv-dashboardCards i,
+.cv-connectedBadge {
+  background: var(--cv-success);
+  box-shadow: none;
+}
+
+.cv-connectedBadge,
+.cv-dashboardTop strong,
+.cv-shieldVisual b {
+  border-color: color-mix(in oklch, var(--cv-success) 28%, white);
+  background: color-mix(in oklch, var(--cv-success) 10%, white);
+  color: color-mix(in oklch, var(--cv-success) 58%, black);
+}
+
+.cv-codeTop {
+  border-bottom-color: var(--cv-border);
+}
+
+.cv-codeTop span {
+  background: color-mix(in oklch, var(--foreground) 18%, white);
+}
+
+.cv-flowPath {
+  stroke: color-mix(in oklch, var(--foreground) 12%, transparent);
+}
+
+.cv-flowDash {
+  stroke: var(--foreground);
+}
+
+.cv-suggestionFlow circle {
+  fill: var(--card);
+  stroke: color-mix(in oklch, var(--foreground) 18%, transparent);
+}
+
+.cv-suggestionFlow g.is-active circle {
+  stroke: var(--foreground);
+  fill: color-mix(in oklch, var(--muted) 64%, white);
+}
+
+.cv-suggestionFlow text {
+  fill: var(--cv-muted);
+}
+
+.cv-dashboardMock aside {
+  border-right-color: var(--cv-border);
+  background: color-mix(in oklch, var(--secondary) 58%, white);
+}
+
+.cv-dashboardTop {
+  border-bottom-color: var(--cv-border);
+}
+
+.cv-finalCta {
+  background:
+    radial-gradient(520px circle at var(--spotlight-x) var(--spotlight-y), color-mix(in oklch, var(--foreground) 7%, transparent), transparent 42%),
+    linear-gradient(135deg, var(--card), color-mix(in oklch, var(--secondary) 62%, white));
+}
+
+.cv-footer {
+  border-top-color: var(--cv-border);
+}
+
+/* Font role contract */
+.cv-landingPage,
+.cv-landingPage p,
+.cv-landingPage li,
+.cv-landingPage a,
+.cv-landingPage button,
+.cv-brand,
+.cv-desktopNav a,
+.cv-mobileNav a,
+.cv-primaryButton,
+.cv-secondaryButton,
+.cv-linkButton,
+.cv-footerBrand div,
+.cv-dashboardMock aside div,
+.cv-dashboardMock aside span,
+.cv-workflowSteps button,
+.cv-workflowSteps button strong,
+.cv-workflowSteps button small,
+.cv-flowLabels span,
+.cv-audienceRows p,
+.cv-featureItem p,
+.cv-painRow p {
+  font-family: var(--cv-font-body);
+}
+
+.cv-hero h1,
+.cv-sectionHeader h2,
+.cv-finalCta h2,
+.cv-glassPanel h3,
+.cv-painRow h3,
+.cv-featureItem h3,
+.cv-suggestionPreview h3,
+.cv-dashboardTop h3,
+.cv-dashboardCards h4,
+.cv-audienceRows h3,
+.cv-compareColumn h3 {
+  font-family: var(--cv-font-heading);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.cv-landingPage .cv-heroKicker,
+.cv-landingPage .cv-commandChip,
+.cv-landingPage .cv-connectedBadge,
+.cv-landingPage .cv-panelChrome,
+.cv-landingPage .cv-suggestionMeta,
+.cv-landingPage .cv-memoryRows span,
+.cv-landingPage .cv-versionPanel span,
+.cv-landingPage .cv-workflowSteps button span,
+.cv-landingPage .cv-workflowMapHeader,
+.cv-landingPage .cv-workflowState code,
+.cv-landingPage .cv-commandChips code,
+.cv-landingPage .cv-codeTop strong,
+.cv-landingPage .cv-codePanel,
+.cv-landingPage .cv-codePanel pre,
+.cv-landingPage .cv-codePanel code,
+.cv-landingPage .cv-dashboardTop span,
+.cv-landingPage .cv-dashboardCards span,
+.cv-landingPage .cv-dashboardTop strong,
+.cv-landingPage .cv-marquee span,
+.cv-landingPage .cv-metric,
+.cv-landingPage .cv-metric *,
+.cv-landingPage .cv-footerColumns h3 {
+  font-family: var(--cv-font-mono);
+  letter-spacing: 0;
+}
+
+/* Workflow light-mode refinement */
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button {
+  border: 1px solid color-mix(in oklch, var(--border) 78%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 96%, transparent), color-mix(in oklch, var(--secondary) 42%, white)),
+    var(--card);
+  color: var(--muted-foreground);
+  box-shadow: 0 12px 32px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button strong {
+  color: var(--foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button small {
+  color: var(--muted-foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button span {
+  border: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--muted) 70%, white);
+  color: var(--foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button.is-active {
+  border-color: color-mix(in oklch, var(--foreground) 22%, transparent);
+  background:
+    linear-gradient(180deg, var(--card), color-mix(in oklch, var(--muted) 52%, white)),
+    var(--card);
+  box-shadow: 0 18px 42px color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowVisual,
+.cv-landingPage .cv-workflowSection .cv-workflowMap,
+.cv-landingPage .cv-workflowSection .cv-workflowState {
+  border-color: color-mix(in oklch, var(--border) 82%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 96%, transparent), color-mix(in oklch, var(--secondary) 48%, white)),
+    var(--card);
+  box-shadow: 0 18px 48px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowProgress {
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowProgress span {
+  background: linear-gradient(90deg, var(--chart-5), var(--chart-3), var(--chart-1));
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--foreground) 8%, transparent),
+    color-mix(in oklch, var(--foreground) 24%, transparent),
+    color-mix(in oklch, var(--foreground) 8%, transparent)
+  );
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack b {
+  background: var(--foreground);
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack div {
+  color: var(--muted-foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack div.is-active {
+  color: var(--foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack div i {
+  border-color: color-mix(in oklch, var(--foreground) 14%, transparent);
+  background: color-mix(in oklch, var(--muted) 62%, white);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack div.is-active i {
+  border-color: color-mix(in oklch, var(--foreground) 32%, transparent);
+  background: color-mix(in oklch, var(--foreground) 9%, white);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowMapHeader strong,
+.cv-landingPage .cv-workflowSection .cv-workflowState code {
+  border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--muted) 68%, white);
+  color: var(--foreground);
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowProgress span,
+.cv-landingPage .cv-workflowSection .cv-workflowTrack b {
+  transition-duration: 300ms;
+}
+
+.cv-landingPage .cv-workflowSection .cv-workflowTrack div,
+.cv-landingPage .cv-workflowSection .cv-workflowSteps button {
+  transition-duration: 140ms;
 }

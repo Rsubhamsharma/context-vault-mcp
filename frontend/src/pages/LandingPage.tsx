@@ -451,7 +451,7 @@ function HowItWorksSection() {
 
   useEffect(() => {
     if (reduced) return;
-    const interval = window.setInterval(() => setActive((index) => (index + 1) % workflowSteps.length), 5000);
+    const interval = window.setInterval(() => setActive((index) => (index + 1) % workflowSteps.length), 2000);
     return () => window.clearInterval(interval);
   }, [reduced]);
 

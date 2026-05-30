@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;550;600;650&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;550;600;650&family=Instrument+Sans:wght@400;500;600;650;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
   color: #17202a;
@@ -10542,8 +10542,8 @@ textarea {
   height: 6px;
   flex: 0 0 6px;
   border-radius: 999px;
-  background: rgba(164, 181, 255, 0.78);
-  box-shadow: 0 0 14px rgba(106, 138, 255, 0.38);
+  background: color-mix(in oklch, var(--foreground) 24%, white);
+  box-shadow: none;
 }
 
 .authPanel {
@@ -10702,4 +10702,766 @@ textarea {
   .authPanelContent h1 {
     font-size: 1.8rem;
   }
+}
+
+/* Premium light mode token layer */
+:root {
+  color-scheme: light;
+  --font-instrument: "Instrument Sans", "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-instrument-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-jetbrains: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --font-sans: var(--font-instrument);
+  --font-display: var(--font-instrument-serif);
+  --font-mono: var(--font-jetbrains);
+  --font-body: var(--font-instrument);
+  --font-heading: var(--font-instrument-serif);
+
+  --background: oklch(0.985 0.002 90);
+  --foreground: oklch(0.12 0.01 60);
+  --primary: oklch(0.12 0.01 60);
+  --primary-foreground: oklch(0.985 0.002 90);
+  --secondary: oklch(0.96 0.005 90);
+  --muted: oklch(0.94 0.005 90);
+  --muted-foreground: oklch(0.45 0.02 60);
+  --accent: oklch(0.12 0.01 60);
+  --accent-soft: color-mix(in oklch, var(--foreground) 6%, transparent);
+  --card: oklch(1 0 0);
+  --border: oklch(0.88 0.01 90);
+  --input: oklch(0.92 0.01 90);
+  --ring: oklch(0.12 0.01 60);
+  --chart-1: oklch(0.12 0.01 60);
+  --chart-2: oklch(0.35 0.02 60);
+  --chart-3: oklch(0.55 0.02 60);
+  --chart-4: oklch(0.70 0.02 60);
+  --chart-5: oklch(0.85 0.01 60);
+
+  --app-bg: var(--background);
+  --bg-app: var(--background);
+  --bg-shell: color-mix(in oklch, var(--secondary) 72%, white);
+  --bg-surface: color-mix(in oklch, var(--card) 92%, var(--secondary));
+  --bg-surface-elevated: var(--card);
+  --bg-surface-hover: color-mix(in oklch, var(--muted) 70%, white);
+  --surface: var(--card);
+  --surface-elevated: var(--card);
+  --surface-glass: color-mix(in oklch, var(--card) 86%, transparent);
+  --surface-hover: color-mix(in oklch, var(--muted) 72%, white);
+  --border-subtle: color-mix(in oklch, var(--border) 72%, transparent);
+  --border-strong: var(--border);
+  --text-primary: var(--foreground);
+  --text-secondary: color-mix(in oklch, var(--foreground) 82%, white);
+  --text-muted: var(--muted-foreground);
+  --text-tertiary: color-mix(in oklch, var(--muted-foreground) 72%, white);
+  --success: oklch(0.42 0.08 145);
+  --warning: oklch(0.58 0.08 82);
+  --danger: oklch(0.5 0.14 28);
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --shadow-soft: 0 22px 60px color-mix(in oklch, var(--foreground) 9%, transparent);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.74), transparent 260px),
+    radial-gradient(circle at 14% 0%, oklch(0.94 0.012 88 / 0.58), transparent 34rem),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+button,
+.buttonLink,
+.actionButton,
+.logoutButton,
+.docsCopyButton {
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+.appShell {
+  background:
+    linear-gradient(115deg, color-mix(in oklch, var(--secondary) 64%, transparent), transparent 38%),
+    var(--background);
+  color: var(--text-primary);
+}
+
+.appSidebar,
+.mobileSidebarDrawer {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 94%, var(--secondary)), color-mix(in oklch, var(--secondary) 62%, white));
+  border-color: var(--border-subtle);
+  box-shadow: 12px 0 42px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.appBrand,
+.brand,
+.pageTitleBlock h1,
+.dashboardHero h2,
+.emptyState h2,
+.modalHeader h2,
+.authPanelContent h1,
+.authValuePanel h2,
+.contextSectionContent h2,
+.docsPageHeader h1,
+.docsArticle h2,
+.suggestionTitle,
+.versionsPageHeader h1,
+.apiKeysHeader h1,
+.mcpSetupHeader h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.shellLogo,
+.authLogo > span {
+  border-color: color-mix(in oklch, var(--foreground) 16%, transparent);
+  background:
+    linear-gradient(145deg, color-mix(in oklch, white 88%, transparent), color-mix(in oklch, var(--secondary) 88%, transparent)),
+    var(--card);
+  box-shadow: inset 0 1px 0 white, 0 12px 30px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.shellLogo span,
+.authLogo > span i {
+  border-color: color-mix(in oklch, var(--foreground) 58%, transparent);
+}
+
+.tagline,
+.navGroup,
+.sidebarNav a,
+.appStatus,
+.pageHeader p,
+.pageTitleBlock p,
+.muted,
+.card p,
+.panel p,
+.emptyState p,
+.docsArticle p {
+  color: var(--text-muted);
+}
+
+.sidebarNav a:hover {
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+}
+
+.sidebarNav a.active,
+nav a.active {
+  background: color-mix(in oklch, var(--foreground) 7%, transparent);
+  color: var(--text-primary);
+}
+
+.sidebarNav a.active::before {
+  background: var(--primary);
+}
+
+.navIcon,
+.badge,
+.appStatusBadge,
+.contextIntro span {
+  border-color: color-mix(in oklch, var(--foreground) 13%, transparent);
+  background: color-mix(in oklch, var(--muted) 72%, white);
+  color: var(--text-secondary);
+}
+
+.appStatus span,
+.appStatusBadge.success::before,
+.successDot,
+.apiKeyStatus.isActive {
+  background: var(--success);
+}
+
+.appTopbar {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--background) 92%, transparent), transparent);
+}
+
+.userProfile {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.panel,
+.card,
+.docsSidebar,
+.docsToc,
+.docsCodeBlock,
+.docsCallout,
+.dashboardHero,
+.dashboardSplit,
+.projectCard,
+.state,
+.emptyState,
+.modal,
+.contextKbCard,
+.versionsTimeline,
+.versionSnapshot,
+.apiKeysTable,
+.mcpSetupCard,
+.reviewDialog,
+.confirmDialog,
+.authPanel,
+.authValuePanel,
+.authGatePanel {
+  border-color: var(--border-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 92%, transparent), color-mix(in oklch, var(--card) 82%, var(--secondary))),
+    var(--card);
+  box-shadow: var(--shadow-soft);
+}
+
+.card,
+.panel,
+.projectCard,
+.docsSidebar,
+.docsToc,
+.docsCodeBlock,
+.docsCallout,
+.emptyState,
+.modal,
+.authPanel,
+.authValuePanel {
+  border-radius: var(--radius-lg);
+}
+
+.actionButton,
+button:not(.mobileMenuButton):not(.cv-menuButton):not(.cv-workflowSteps button):not(.contextSectionNav button):not(.reviewTab):not(.docsCopyButton),
+.buttonLink {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid var(--primary);
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--foreground) 12%, transparent);
+}
+
+.actionButton.secondary,
+button.secondary,
+.secondary,
+.logoutButton,
+.docsCopyButton,
+.emptyStateActions .actionButton.secondary,
+.console-actions .actionButton.secondary {
+  background: color-mix(in oklch, var(--card) 86%, var(--secondary));
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+}
+
+.actionButton:hover,
+button:hover,
+.buttonLink:hover {
+  transform: translateY(-1px);
+}
+
+input,
+textarea,
+select {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--input) 38%, white);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 12%, transparent);
+}
+
+code,
+pre,
+.docsCodeBlock pre,
+.contextMcpPreview pre {
+  border-color: var(--border-subtle);
+  background: color-mix(in oklch, var(--muted) 70%, white);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+table,
+td,
+.sectionBlock,
+.docsDefinitionTable div,
+.docsTroubleshooting details,
+.contextSectionContent header,
+.contextSectionContent .contextKbList li,
+.memoryDetailsDisclosure,
+.contextMcpPreview summary {
+  border-color: var(--border-subtle);
+}
+
+.authShell,
+.authGateShell {
+  background:
+    radial-gradient(circle at 15% 12%, color-mix(in oklch, var(--muted) 82%, transparent), transparent 34rem),
+    linear-gradient(145deg, var(--background), color-mix(in oklch, var(--secondary) 72%, white));
+  color: var(--text-primary);
+}
+
+.authPanel {
+  backdrop-filter: blur(18px);
+}
+
+.authForm input {
+  background: color-mix(in oklch, var(--input) 35%, white);
+  color: var(--text-primary);
+}
+
+.authForm input:focus {
+  background: white;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 12%, transparent);
+}
+
+.authSwitchLink a {
+  color: var(--text-primary);
+}
+
+.authSwitchLink a:hover {
+  color: var(--foreground);
+}
+
+.authPanel .errorBox,
+.error,
+.errorBox {
+  border-color: color-mix(in oklch, var(--danger) 28%, white);
+  background: color-mix(in oklch, var(--danger) 8%, white);
+  color: var(--danger);
+}
+
+.success,
+.docsCallout.success {
+  border-color: color-mix(in oklch, var(--success) 28%, white);
+  background: color-mix(in oklch, var(--success) 8%, white);
+}
+
+.docsCallout.warning,
+.appStatusBadge.warning {
+  border-color: color-mix(in oklch, var(--warning) 28%, white);
+  background: color-mix(in oklch, var(--warning) 8%, white);
+}
+
+.contextSectionNav nav button:hover,
+.contextSectionNav nav button.isActive {
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+  color: var(--text-primary);
+}
+
+.contextSectionNav nav button.isActive::before,
+.contextSectionContent .contextKbList li > span {
+  background: var(--primary);
+}
+
+::selection {
+  background: color-mix(in oklch, var(--foreground) 14%, transparent);
+  color: var(--foreground);
+}
+
+.cv-landingPage button.cv-menuButton {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--card) 88%, transparent);
+  box-shadow: 0 12px 28px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.cv-landingPage button.cv-menuButton span {
+  background: var(--foreground);
+}
+
+/* Font role contract */
+body,
+p,
+li,
+td,
+dd,
+input,
+textarea,
+select,
+.appBrand,
+.brand,
+.authLogo,
+.sidebarNav a,
+.docsSidebar button,
+.docsToc button,
+.contextSectionNav nav button,
+.contextSectionTabs button,
+.segmentedControl button,
+.reviewSegmentedControl button,
+.mcpToolTabs button,
+.actionButton,
+.buttonLink,
+.logoutButton,
+button {
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+.pageTitleBlock h1,
+.dashboardHero h2,
+.emptyState h2,
+.modalHeader h2,
+.authPanelContent h1,
+.authValuePanel h2,
+.contextSectionContent h2,
+.docsPageHeader h1,
+.docsArticle h2,
+.suggestionTitle,
+.versionsPageHeader h1,
+.apiKeysHeader h1,
+.mcpSetupHeader h1,
+.projectCard h3,
+.panel h2,
+.sectionBlock h3,
+.sectionBlock h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+code,
+pre,
+kbd,
+samp,
+label,
+.navGroup,
+.navIcon,
+.badge,
+.badgeStack,
+.appStatus,
+.appStatusBadge,
+.contextIntro span,
+.contextSectionNav nav button em,
+.memoryDetailsDisclosure dt,
+.memoryDetailsDisclosure dd,
+.contextMcpPreview dt,
+.contextMcpPreview dd,
+.docsCodeBlock header,
+.docsCodeBlock pre,
+.docsCopyButton,
+.docsFlow,
+.docsStepList span,
+.mcpSetupMeta code,
+.mcpConfigBlock pre,
+.mcpToolMeta,
+.apiRawKeyField code,
+.apiKeyScopes code,
+.rowDetails code,
+.kv code,
+.webhookConfig .kv code,
+.versionFullSnapshot pre,
+.metricStrip,
+.metricStrip *,
+[class*="Metric"],
+[class*="metric"] {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+input,
+textarea,
+select,
+.authForm input,
+.apiDialog input,
+.apiDialog textarea,
+.manualCapturePanel textarea,
+.fallbackForm input,
+.fallbackForm textarea {
+  font-family: var(--font-sans);
+}
+
+/* Authenticated app light cleanup */
+.appShell .surfacePanel,
+.appShell .vaults-section,
+.appShell .projectListItem,
+.appShell .projectList a,
+.appShell .statusCards div,
+.appShell .suggestionsQueuePanel,
+.appShell .manualCapturePanel,
+.appShell .suggestionReviewItem,
+.appShell .suggestionCard,
+.appShell .reviewQueuePanel,
+.appShell .reviewQueueItem,
+.appShell .reviewQueueEmpty,
+.appShell .reviewPatchSummary,
+.appShell .reviewPatchDetails,
+.appShell .versionsBrowser,
+.appShell .versionTimeline,
+.appShell .versionHistoryItem,
+.appShell .versionDetailPanel,
+.appShell .versionSnapshotPreview,
+.appShell .versionSnapshotPreview article,
+.appShell .versionPreviewGroups article,
+.appShell .versionFullSnapshot,
+.appShell .versionAllChanges,
+.appShell .versionsEmptyState,
+.appShell .apiKeysTableWrap,
+.appShell .apiNextStepPanel,
+.appShell .apiKeysEmptyState,
+.appShell .apiDialog,
+.appShell .mcpSetupSteps,
+.appShell .mcpConfigBlock,
+.appShell .mcpToolSetup,
+.appShell .mcpPromptList,
+.appShell .mcpToolsReference,
+.appShell .mcpTroubleshooting,
+.appShell .mcpSecurityNote,
+.appShell .mcpToolSetup article,
+.appShell .mcpPromptList article,
+.appShell .docsSidebar,
+.appShell .docsToc,
+.appShell .docsCompareTable,
+.appShell .docsDefinitionTable,
+.appShell .docsCodeBlock,
+.appShell .docsCallout,
+.appShell .githubStatusPanel,
+.appShell .githubSectionPanel,
+.appShell .nextStepsPanel,
+.appShell .repositoryConnectionItem,
+.appShell .eventFeedPanel,
+.appShell .githubEventItem,
+.appShell .settingsTable,
+.appShell .settingsTableHead,
+.appShell .settingsTableRow,
+.appShell .contextOverviewPanel,
+.appShell .contextKbSectionView,
+.appShell .contextKbEmptyState,
+.appShell .contextMcpPreview,
+.appShell .reviewDialog,
+.appShell .confirmDialog,
+.appShell .modal-content,
+.appShell .modal,
+.appShell .state,
+.appShell .emptyState {
+  border-color: var(--border-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, white 94%, transparent), color-mix(in oklch, var(--secondary) 38%, white)),
+    var(--card);
+  color: var(--text-primary);
+  box-shadow: 0 18px 48px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.appShell .projectList,
+.appShell .reviewQueueList,
+.appShell .scrollableVersionList,
+.appShell .githubEventFeed,
+.appShell .settingsTable,
+.appShell .apiKeysTable tbody,
+.appShell .docsTroubleshooting,
+.appShell .mcpTroubleshooting > div,
+.appShell .versionDetailChanges dl,
+.appShell .versionDetailPreviewItems ul,
+.appShell .contextKbList,
+.appShell .reviewPatchDetails ul {
+  background: transparent;
+}
+
+.appShell .projectListItem,
+.appShell .reviewQueueItem,
+.appShell .suggestionReviewItem,
+.appShell .versionHistoryItem,
+.appShell .repositoryConnectionItem,
+.appShell .githubEventItem,
+.appShell .settingsTableRow,
+.appShell .apiKeysTable tr,
+.appShell .docsDefinitionTable div,
+.appShell .docsTroubleshooting details,
+.appShell .mcpToolSetup dl div,
+.appShell .mcpToolsReference dl div,
+.appShell .mcpTroubleshooting dl div,
+.appShell .versionSnapshotPreview article,
+.appShell .versionPreviewGroups article,
+.appShell .contextKbList li,
+.appShell .reviewPatchDetails section,
+.appShell .reviewPatchSummary span,
+.appShell .reviewPatchSummary strong {
+  border-color: var(--border-subtle);
+  background: color-mix(in oklch, var(--card) 82%, var(--secondary));
+  color: var(--text-primary);
+}
+
+.appShell .projectListItem:hover,
+.appShell .reviewQueueItem:hover,
+.appShell .suggestionReviewItem:hover,
+.appShell .versionHistoryItem:hover,
+.appShell .repositoryConnectionItem:hover,
+.appShell .settingsTableRow:hover {
+  border-color: var(--border-strong);
+  background: var(--card);
+  box-shadow: 0 16px 40px color-mix(in oklch, var(--foreground) 7%, transparent);
+}
+
+.appShell .reviewQueueItem.is-applied,
+.appShell .reviewQueueItem.is-rejected,
+.appShell .suggestionReviewItem.is-applied,
+.appShell .suggestionReviewItem.is-rejected,
+.appShell .versionHistoryItem.isQuiet,
+.appShell .apiKeysTable tr.isRevoked,
+.appShell .mutedRow {
+  background: color-mix(in oklch, var(--muted) 52%, white);
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.appShell .versionHistoryItem.isActive,
+.appShell .versionHistoryItem.isQuiet.isActive,
+.appShell .reviewSegmentedControl button.is-active,
+.appShell .segmentedControl button.is-active,
+.appShell .mcpToolTabs button.isActive,
+.appShell .docsSidebar button.isActive,
+.appShell .docsToc button.isActive,
+.appShell .contextSectionTabs button.isActive {
+  border-color: color-mix(in oklch, var(--foreground) 20%, transparent);
+  background: color-mix(in oklch, var(--foreground) 6%, white);
+  color: var(--text-primary);
+}
+
+.appShell .versionTimelineTrack::before,
+.appShell .githubEventFeed::before,
+.appShell .githubFlowLine::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--foreground) 8%, transparent),
+    color-mix(in oklch, var(--foreground) 24%, transparent),
+    color-mix(in oklch, var(--foreground) 8%, transparent)
+  );
+}
+
+.appShell .versionHistoryItem::before,
+.appShell .versionMarker,
+.appShell .statusDot,
+.appShell .statusDot.success,
+.appShell .status-chip.ready,
+.appShell .status-applied,
+.appShell .status-pending,
+.appShell .status-rejected,
+.appShell .reviewBadge,
+.appShell .integrationBadge,
+.appShell .versionBadge,
+.appShell .apiKeyStatus,
+.appShell .mcpChecklist i,
+.appShell .docsStepList span,
+.appShell .contextKbMeta span,
+.appShell .versionsHeaderMeta span,
+.appShell .apiKeysMeta span,
+.appShell .mcpSetupMeta code,
+.appShell .githubHeaderStatus,
+.appShell .reviewQueueCounts strong {
+  border-color: color-mix(in oklch, var(--foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--muted) 68%, white);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.appShell .status-chip.ready,
+.appShell .statusDot.success,
+.appShell .appStatusBadge.success,
+.appShell .githubMessage.success,
+.appShell .reviewBadge.success,
+.appShell .apiKeyStatus.isActive,
+.appShell .mcpChecklist .isDone i {
+  border-color: color-mix(in oklch, var(--success) 28%, white);
+  background: color-mix(in oklch, var(--success) 10%, white);
+  color: color-mix(in oklch, var(--success) 58%, black);
+}
+
+.appShell .status-chip.warning,
+.appShell .statusDot.warning,
+.appShell .appStatusBadge.warning,
+.appShell .githubMessage.pending,
+.appShell .reviewBadge.warning,
+.appShell .mcpKeyWarning {
+  border-color: color-mix(in oklch, var(--warning) 30%, white);
+  background: color-mix(in oklch, var(--warning) 10%, white);
+  color: color-mix(in oklch, var(--warning) 58%, black);
+}
+
+.appShell .reviewBadge.danger,
+.appShell .githubMessage.error {
+  border-color: color-mix(in oklch, var(--danger) 28%, white);
+  background: color-mix(in oklch, var(--danger) 8%, white);
+  color: var(--danger);
+}
+
+.appShell .ghostButton,
+.appShell .compactReviewButton,
+.appShell .mcpCopyButton,
+.appShell .docsCopyButton,
+.appShell .reviewDialog footer .ghostButton,
+.appShell .apiDialog footer .ghostButton,
+.appShell .confirmDialog footer .ghostButton,
+.appShell .versionDetailActions .ghostButton {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--card) 86%, var(--secondary));
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.appShell .ghostButton:hover,
+.appShell .compactReviewButton:hover,
+.appShell .mcpCopyButton:hover,
+.appShell .docsCopyButton:hover {
+  background: var(--card);
+  color: var(--text-primary);
+}
+
+.appShell .mcpConfigBlock pre,
+.appShell .docsCodeBlock pre,
+.appShell .versionFullSnapshot pre,
+.appShell .contextMcpPreview pre,
+.appShell .apiRawKeyField,
+.appShell .apiRawKeyField code,
+.appShell .mcpKeyWarning,
+.appShell code,
+.appShell pre {
+  border-color: var(--border-subtle);
+  background: color-mix(in oklch, var(--muted) 66%, white);
+  color: var(--text-secondary);
+}
+
+.appShell input,
+.appShell textarea,
+.appShell select,
+.appShell .versionFilters input,
+.appShell .versionFilters select,
+.appShell .docsMobileSelect select,
+.appShell .manualCapturePanel textarea,
+.appShell .reviewDialog textarea,
+.appShell .apiDialog input {
+  border-color: var(--border-strong);
+  background: color-mix(in oklch, var(--input) 38%, white);
+  color: var(--text-primary);
+}
+
+.appShell input:focus,
+.appShell textarea:focus,
+.appShell select:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 12%, transparent);
+}
+
+.appShell .loadingState span,
+.appShell .projectSkeleton span,
+.appShell .reviewQueueSkeleton span,
+.appShell .versionsSkeleton span,
+.appShell .apiKeysSkeleton span,
+.appShell .githubSkeleton span,
+.appShell .githubSettingsSkeleton span,
+.appShell .contextKbSkeleton span {
+  background:
+    linear-gradient(90deg, color-mix(in oklch, var(--muted) 58%, white), var(--card), color-mix(in oklch, var(--muted) 58%, white));
+  border-color: transparent;
+}
+
+.appShell .reviewDialogOverlay,
+.appShell .confirmDialogOverlay,
+.appShell .apiDialogOverlay,
+.appShell .modal-overlay,
+.appShell .mobileSidebarOverlay {
+  background: color-mix(in oklch, var(--foreground) 22%, transparent);
 }
