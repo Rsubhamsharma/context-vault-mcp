@@ -82,9 +82,11 @@ GITHUB_APP_SLUG=your-github-app-slug
 GITHUB_APP_ID=your_app_id
 GITHUB_APP_PRIVATE_KEY_PATH=C:\path\to\github-app-private-key.pem
 GITHUB_APP_WEBHOOK_SECRET=your_webhook_secret
+ENABLE_GITHUB_DEBUG_ROUTES=false
 ```
 
 You can also use `GITHUB_APP_PRIVATE_KEY` with escaped `\n` newlines, but `GITHUB_APP_PRIVATE_KEY_PATH` is easier for local development.
+GitHub debug/dev routes are disabled by default. Set `ENABLE_GITHUB_DEBUG_ROUTES=true` only for local development.
 
 ### 3. Prepare the database
 
@@ -170,12 +172,12 @@ context:write:suggestion
 
 ## MCP Client Config
 
-Use absolute paths. Replace the API key and project ID with values from the dashboard.
+Use absolute paths. Replace the API key and project ID with values from the dashboard. Each vault uses its own `CONTEXT_VAULT_PROJECT_ID`; for multiple vaults, add one server entry per project and give each entry a unique key such as `context-vault-review-first` or `context-vault-my-saas`.
 
 ```json
 {
   "mcpServers": {
-    "context-vault": {
+    "context-vault-project-slug": {
       "command": "node",
       "args": ["C:\\Users\\you\\path\\to\\contextvault_mcp\\context-vault-mcp\\build\\index.js"],
       "env": {
@@ -302,6 +304,16 @@ or:
 ```env
 GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
 ```
+
+**Prisma generate fails on Windows with EPERM rename**
+
+Windows can lock Prisma's query engine DLL while a backend/dev process, terminal, editor, or scanner is using it. Stop backend, frontend, MCP, Prisma Studio, and other Node processes, then rerun:
+
+```bash
+npm run prisma:generate
+```
+
+If it still fails, close terminals or VS Code windows that may be holding Prisma files. As a last local cleanup step, delete `node_modules/.prisma`, reinstall dependencies if needed, and rerun `npm run prisma:generate`. Do not commit generated engine files or local `.env` files.
 
 Do not paste an unescaped multiline private key directly into `.env`.
 

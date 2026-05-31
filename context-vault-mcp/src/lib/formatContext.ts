@@ -304,7 +304,7 @@ const filterNoiseContaining = (items: string[], blockedFragments: string[]): str
 
 const optimizedNoiseFragments = [
   "need api tests later",
-  "review github push abc123postmantest",
+  "review github push",
   "context service is ready for future mcp integration",
   "github push was detected from repository",
   "create suggestion",
@@ -939,14 +939,9 @@ const formatStandardProjectHandoff = (
   }
 
   const issues = filterOptimizedNoise(withoutNormalized(context.issues, ["Need API tests later"]));
-  const nextSteps = [
-    ...filterOptimizedNoise(withoutNormalized(context.nextSteps, [
-      "Review GitHub push abc123postmantest on main and update project context if the change affects product behavior, architecture, dependencies, or known issues.",
-      "Verify future PATCH and suggestion apply operations merge cumulatively instead of replacing arrays."
-    ])),
-    "Auto-generate readable version metadata.",
-    "Improve context_smart task handoff output."
-  ];
+  const nextSteps = filterOptimizedNoise(withoutNormalized(context.nextSteps, [
+    "Verify future PATCH and suggestion apply operations merge cumulatively instead of replacing arrays."
+  ]));
   const architectureNotes = filterOptimizedNoise(withoutNormalized(context.architectureNotes, [
     "Context service is ready for future MCP integration."
   ]));

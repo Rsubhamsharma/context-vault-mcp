@@ -11375,9 +11375,7 @@ select,
 .appShell .versionSnapshotPreview article,
 .appShell .versionPreviewGroups article,
 .appShell .contextKbList li,
-.appShell .reviewPatchDetails section,
-.appShell .reviewPatchSummary span,
-.appShell .reviewPatchSummary strong {
+.appShell .reviewPatchDetails section {
   border-color: var(--border-subtle);
   background: color-mix(in oklch, var(--card) 82%, var(--secondary));
   color: var(--text-primary);

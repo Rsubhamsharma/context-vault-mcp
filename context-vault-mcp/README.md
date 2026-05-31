@@ -86,12 +86,12 @@ Call `context_health_check` first. It should report:
 
 ## Using With Cursor
 
-Add this MCP server config, using absolute paths:
+Add this MCP server config, using absolute paths. Each vault uses its own `CONTEXT_VAULT_PROJECT_ID`; for multiple vaults, add one server entry per project and keep each server key unique, such as `context-vault-review-first` or `context-vault-my-saas`.
 
 ```json
 {
   "mcpServers": {
-    "context-vault": {
+    "context-vault-project-slug": {
       "command": "node",
       "args": ["ABSOLUTE_PATH_TO/context-vault-mcp/build/index.js"],
       "env": {
@@ -106,12 +106,12 @@ Add this MCP server config, using absolute paths:
 
 ## Using With Claude Desktop
 
-Put the same server block in Claude Desktop's MCP config file:
+Put the same project-specific server block in Claude Desktop's MCP config file:
 
 ```json
 {
   "mcpServers": {
-    "context-vault": {
+    "context-vault-project-slug": {
       "command": "node",
       "args": ["ABSOLUTE_PATH_TO/context-vault-mcp/build/index.js"],
       "env": {
@@ -128,12 +128,12 @@ Restart Claude Desktop after editing its config.
 
 ## Using With Windsurf
 
-If your Windsurf build supports MCP server configuration, use the same stdio server config:
+If your Windsurf build supports MCP server configuration, use the same project-specific stdio server config:
 
 ```json
 {
   "mcpServers": {
-    "context-vault": {
+    "context-vault-project-slug": {
       "command": "node",
       "args": ["ABSOLUTE_PATH_TO/context-vault-mcp/build/index.js"],
       "env": {

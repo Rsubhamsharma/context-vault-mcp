@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { env } from "../../config/env";
 import { requireAuth } from "../../middleware/auth.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { githubController } from "./github.controller";
@@ -18,8 +19,10 @@ projectGithubRoutes.get(
 projectGithubRoutes.use(requireAuth);
 projectGithubRoutes.post("/connect", asyncHandler(githubController.connectRepository));
 projectGithubRoutes.get("/connection", asyncHandler(githubController.getConnection));
-projectGithubRoutes.post("/dev/clear-connections", asyncHandler(githubController.clearConnectionsForDev));
-projectGithubRoutes.post("/dev/reset", asyncHandler(githubController.resetConnectionsForDev));
-projectGithubRoutes.get("/app/debug-installation/:installationId", asyncHandler(githubController.debugInstallation));
+if (env.ENABLE_GITHUB_DEBUG_ROUTES) {
+  projectGithubRoutes.post("/dev/clear-connections", asyncHandler(githubController.clearConnectionsForDev));
+  projectGithubRoutes.post("/dev/reset", asyncHandler(githubController.resetConnectionsForDev));
+  projectGithubRoutes.get("/app/debug-installation/:installationId", asyncHandler(githubController.debugInstallation));
+}
 projectGithubRoutes.get("/events", asyncHandler(githubController.listEvents));
 projectGithubRoutes.post("/events/:eventId/reprocess", asyncHandler(githubController.reprocessEvent));
