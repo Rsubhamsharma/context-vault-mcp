@@ -40,6 +40,35 @@ export type GitHubAnalysisResult = {
   reasoningSummary: string;
 };
 
+type PatchField = keyof GitHubAnalysisResult["suggestedPatch"];
+
+type FileEvidence = {
+  files: string[];
+  frontendFiles: string[];
+  backendFiles: string[];
+  docsFiles: string[];
+  packageFiles: string[];
+  testFiles: string[];
+  versionUiFiles: string[];
+  backendVersionFiles: string[];
+  landingFiles: string[];
+  styleFiles: string[];
+  githubFiles: string[];
+  mcpFiles: string[];
+  authFiles: string[];
+  databaseFiles: string[];
+};
+
+const patchFields: PatchField[] = [
+  "features",
+  "decisions",
+  "issues",
+  "dependencies",
+  "constraints",
+  "nextSteps",
+  "architectureNotes"
+];
+
 const includesAny = (text: string, terms: readonly string[]): boolean => {
   return terms.some((term) => text.includes(term));
 };
@@ -50,7 +79,7 @@ const unique = (items: string[]): string[] => {
 
   for (const item of items) {
     const trimmed = item.trim();
-    const key = trimmed.toLowerCase();
+    const key = trimmed.toLowerCase().replace(/\s+/g, " ");
     if (trimmed && !seen.has(key)) {
       seen.add(key);
       result.push(trimmed);
@@ -60,262 +89,322 @@ const unique = (items: string[]): string[] => {
   return result;
 };
 
-const keywordGroups = {
-  feature: ["add", "added", "implement", "implemented", "create", "introduce", "support", "enable", "build"],
-  fix: ["fix", "fixed", "resolve", "resolved", "bug", "patch", "error", "failing", "broken"],
-  architecture: ["refactor", "restructure", "cleanup", "migrate", "architecture", "service", "module", "middleware", "schema", "prisma", "database"],
-  security: ["auth", "authentication", "authorization", "jwt", "api key", "apikey", "scope", "permission", "token", "secret", "hash", "revoke", "ownership"],
-  mcpContext: ["mcp", "context", "projectcontext", "suggestion", "version", "memory", "export", "smart", "handoff", "skill", "plugin"],
-  github: ["github", "webhook", "pull request", "pr", "commit", "review queue", "event", "sync"],
-  frontend: ["frontend", "react", "vite", "dashboard", "ui", "page", "route", "setup", "review queue"],
-  dependency: ["install", "package", "dependency", "library", "sdk", "prisma migrate", "migration"]
-} as const;
+const normalizePath = (filename: string): string => filename.trim().replace(/\\/g, "/").toLowerCase();
 
-const matchedGroupNames = (signalText: string): string[] => {
-  return Object.entries(keywordGroups)
-    .filter(([, terms]) => includesAny(signalText, [...terms]))
-    .map(([name]) => name);
+const fileEvidenceFor = (changedFiles: GitHubChangedFile[] | undefined): FileEvidence => {
+  const files = (changedFiles ?? []).map((file) => normalizePath(file.filename)).filter(Boolean);
+  const by = (predicate: (file: string) => boolean) => files.filter(predicate);
+
+  return {
+    files,
+    frontendFiles: by((file) =>
+      file.includes("/src/pages/") ||
+      file.includes("/src/components/") ||
+      file.includes("/src/routes/") ||
+      file.startsWith("frontend/") ||
+      file.startsWith("client/") ||
+      file.startsWith("app/") ||
+      file.endsWith(".tsx") ||
+      file.endsWith(".jsx") ||
+      file.endsWith(".css") ||
+      file.endsWith(".scss") ||
+      file.includes("tailwind.config")
+    ),
+    backendFiles: by((file) =>
+      file.startsWith("src/") ||
+      file.startsWith("server/") ||
+      file.startsWith("backend/") ||
+      file.includes("/api/") ||
+      file.includes("/controllers/") ||
+      file.includes("/services/") ||
+      file.includes("/modules/")
+    ),
+    docsFiles: by((file) => file.startsWith("docs/") || file.endsWith(".md") || file.includes("/docs/")),
+    packageFiles: by((file) => /(^|\/)(package|pnpm-lock|package-lock|yarn\.lock|bun\.lockb)(\.json)?$/.test(file)),
+    testFiles: by((file) => file.includes(".test.") || file.includes(".spec.") || file.includes("/tests/") || file.includes("__tests__")),
+    versionUiFiles: by((file) => includesAny(file, ["versionpage", "versionspage", "version-history", "versionhistory", "/versions", "timeline"])),
+    backendVersionFiles: by((file) =>
+      includesAny(file, ["versionmetadata", "version-metadata", "version.service", "/versions/"]) &&
+      !file.startsWith("frontend/") &&
+      !file.startsWith("client/") &&
+      !file.endsWith(".tsx") &&
+      !file.endsWith(".jsx") &&
+      !file.endsWith(".css")
+    ),
+    landingFiles: by((file) => includesAny(file, ["landing", "home", "marketing"])),
+    styleFiles: by((file) => file.endsWith(".css") || file.endsWith(".scss") || file.includes("tailwind.config")),
+    githubFiles: by((file) => includesAny(file, ["github", "webhook"])),
+    mcpFiles: by((file) => includesAny(file, ["mcp", "modelcontextprotocol"])),
+    authFiles: by((file) => includesAny(file, ["auth", "jwt", "apikey", "api-key", "session"])),
+    databaseFiles: by((file) => includesAny(file, ["prisma", "schema.prisma", "migration", "database"]))
+  };
 };
 
-const summarizeFiles = (changedFiles: GitHubChangedFile[] | undefined): string | undefined => {
-  if (!changedFiles || changedFiles.length === 0) {
+const sourceTextFor = (input: GitHubAnalysisInput): string => {
+  return [
+    input.title,
+    input.branch,
+    input.diffSummary,
+    ...input.commitMessages
+  ].filter(Boolean).join(" ").toLowerCase();
+};
+
+const firstMeaningfulCommit = (input: GitHubAnalysisInput): string => {
+  return input.commitMessages.find((message) => message.trim().length > 0)?.trim() ?? input.title?.trim() ?? "GitHub change";
+};
+
+const subjectFromCommit = (message: string): string => {
+  return message
+    .replace(/^[a-z]+(\([^)]+\))?!?:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const titleCase = (value: string): string => {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const titleFor = (input: GitHubAnalysisInput, evidence: FileEvidence, text: string): string => {
+  if (evidence.versionUiFiles.length > 0 && evidence.landingFiles.length > 0) {
+    return "Frontend Version History and Landing Pages Updated";
+  }
+  if (evidence.versionUiFiles.length > 0) {
+    return "Frontend Version History UI Updated";
+  }
+  if (evidence.backendVersionFiles.length > 0 && includesAny(text, ["metadata", "summary", "summaries", "changed section", "preview"])) {
+    return "Version Metadata Generation Updated";
+  }
+  if (evidence.landingFiles.length > 0) {
+    return "Landing Page UI Updated";
+  }
+  if (evidence.githubFiles.length > 0) {
+    return "GitHub Integration Updated";
+  }
+  if (evidence.mcpFiles.length > 0) {
+    return "MCP Integration Updated";
+  }
+  if (evidence.authFiles.length > 0) {
+    return "Authentication/Security Updated";
+  }
+  if (evidence.docsFiles.length > 0 && evidence.files.length === evidence.docsFiles.length) {
+    return "Documentation Updated";
+  }
+  if (evidence.frontendFiles.length > 0 && evidence.backendFiles.length === 0) {
+    return "Frontend UI Updated";
+  }
+  const subject = subjectFromCommit(firstMeaningfulCommit(input));
+  return subject ? titleCase(subject).slice(0, 120) : "GitHub Context Update";
+};
+
+const addDependencyHints = (patch: GitHubAnalysisResult["suggestedPatch"], text: string, evidence: FileEvidence) => {
+  if (evidence.packageFiles.length === 0) {
+    return;
+  }
+
+  const knownDependencies: Array<[string, string]> = [
+    ["react", "React"],
+    ["vite", "Vite"],
+    ["express", "Express"],
+    ["prisma", "Prisma"],
+    ["zod", "Zod"],
+    ["jsonwebtoken", "JWT/jsonwebtoken"],
+    ["bcrypt", "bcrypt"],
+    ["@modelcontextprotocol/sdk", "MCP TypeScript SDK"],
+    ["gemini", "Gemini API"],
+    ["postgres", "PostgreSQL"]
+  ];
+
+  for (const [needle, label] of knownDependencies) {
+    if (text.includes(needle)) {
+      patch.dependencies.push(label);
+    }
+  }
+};
+
+const changedFileSummary = (evidence: FileEvidence): string | undefined => {
+  if (evidence.files.length === 0) {
     return undefined;
   }
-
-  return changedFiles
-    .slice(0, 12)
-    .map((file) => {
-      const stats = [
-        file.status,
-        file.additions !== undefined ? `+${file.additions}` : undefined,
-        file.deletions !== undefined ? `-${file.deletions}` : undefined
-      ].filter(Boolean).join(", ");
-      return stats ? `${file.filename} (${stats})` : file.filename;
-    })
-    .join("; ");
+  return evidence.files.slice(0, 8).join(", ");
 };
 
-const fileHints = (changedFiles: GitHubChangedFile[] | undefined): string => {
-  return changedFiles?.map((file) => file.filename.toLowerCase()).join(" ") ?? "";
+const isDocsOnly = (evidence: FileEvidence): boolean => {
+  return evidence.files.length > 0 && evidence.files.length === evidence.docsFiles.length;
 };
 
-const sourceSummaryFor = (input: GitHubAnalysisInput): string => {
-  if (input.eventType === "push") {
-    return input.commitMessages.join(" | ") || "GitHub push";
-  }
-
-  return input.title ?? `PR #${input.prNumber ?? "unknown"}`;
+const isFrontendOnly = (evidence: FileEvidence): boolean => {
+  return evidence.frontendFiles.length > 0 && evidence.backendFiles.length === 0;
 };
 
-const titleFor = (signalText: string, input: GitHubAnalysisInput): string => {
-  if (includesAny(signalText, ["duplicate suggestion apply", "suggestion apply", "duplicate", "idempotent", "idempotency"])) {
-    return "Suggestion Apply Idempotency Fixed";
-  }
-  if (includesAny(signalText, ["mcp api key", "api key authentication", "scoped api key", "api keys"])) {
-    return "MCP API Key Authentication Added";
-  }
-  if (includesAny(signalText, ["context_load", "context smart", "context_smart", "handoff", "optimizer", "optimized context"])) {
-    return "AI Context Handoff Improved";
-  }
-  if (includesAny(signalText, ["github webhook review queue", "review queue", "github webhook", "github sync"])) {
-    return "GitHub Review Queue Added";
-  }
-  if (includesAny(signalText, ["version metadata", "version history", "changed section", "change preview"])) {
-    return "Version History Improved";
-  }
-  if (includesAny(signalText, keywordGroups.security)) {
-    return "Authentication/Security Context Updated";
-  }
-  if (includesAny(signalText, keywordGroups.github)) {
-    return input.eventType === "pull_request" ? "GitHub Pull Request Context Updated" : "GitHub Sync Context Updated";
-  }
-  if (includesAny(signalText, keywordGroups.frontend)) {
-    return "Dashboard Context Updated";
-  }
-  if (includesAny(signalText, keywordGroups.feature)) {
-    return "Project Feature Context Updated";
-  }
-  if (includesAny(signalText, keywordGroups.fix)) {
-    return "Project Issue Context Updated";
-  }
+const hasExplicitDecision = (text: string): boolean => {
+  return includesAny(text, ["decision:", "decide", "adopt", "standardize", "make ", "must ", "should "]);
+};
 
-  return input.eventType === "pull_request"
-    ? `GitHub PR Review Needed: #${input.prNumber ?? "unknown"}`
-    : `GitHub Push Review Needed: ${input.branch ?? "unknown branch"}`;
+const hasExplicitConstraint = (text: string): boolean => {
+  return includesAny(text, ["constraint:", "must not", "cannot", "can't", "only if", "required to"]);
+};
+
+const hasExplicitFollowUp = (text: string): boolean => {
+  return includesAny(text, ["todo", "follow up", "follow-up", "next step", "later", "remaining"]);
+};
+
+const cleanPatch = (patch: GitHubAnalysisResult["suggestedPatch"]): GitHubAnalysisResult["suggestedPatch"] => {
+  const blocked = [
+    "review github push",
+    "review pr #",
+    "users should not manually write version change summaries",
+    "version metadata is generated by comparing previous and next projectcontext state",
+    "auto-generated readable version titles"
+  ];
+
+  const cleaned = { ...patch };
+  for (const field of patchFields) {
+    cleaned[field] = unique(patch[field]).filter((item) => !includesAny(item.toLowerCase(), blocked));
+  }
+  return cleaned;
 };
 
 export const githubAnalysisService = {
   analyze(input: GitHubAnalysisInput): GitHubAnalysisResult {
-    const signalText = [
-      input.title,
-      input.branch,
-      input.diffSummary,
-      ...input.commitMessages,
-      fileHints(input.changedFiles)
-    ].filter(Boolean).join(" ").toLowerCase();
+    const evidence = fileEvidenceFor(input.changedFiles);
+    const text = sourceTextFor(input);
+    const commitSubject = subjectFromCommit(firstMeaningfulCommit(input));
 
-    const sourceSummary = input.eventType === "push"
-      ? sourceSummaryFor(input)
-      : sourceSummaryFor(input);
-    const suggestionTitle = titleFor(signalText, input);
-    const matchedGroups = matchedGroupNames(signalText);
-
-    const patch = {
-      features: [] as string[],
-      decisions: [] as string[],
-      issues: [] as string[],
-      dependencies: [] as string[],
-      constraints: [] as string[],
-      nextSteps: [] as string[],
-      architectureNotes: [] as string[]
+    const patch: GitHubAnalysisResult["suggestedPatch"] = {
+      features: [],
+      decisions: [],
+      issues: [],
+      dependencies: [],
+      constraints: [],
+      nextSteps: [],
+      architectureNotes: []
     };
 
-    if (suggestionTitle === "MCP API Key Authentication Added") {
-      patch.features.push("Added scoped MCP API key authentication for AI-tool access to Context Vault.");
-      patch.decisions.push("MCP clients should authenticate using scoped API keys instead of login JWTs.");
-      patch.constraints.push("MCP API keys must not bypass project ownership checks or directly mutate official ProjectContext.");
-      patch.architectureNotes.push("MCP authentication connects AI tools to the same account-based Context Vault source of truth.");
-      patch.nextSteps.push("Verify API key creation, revocation, scope enforcement, and MCP client access.");
+    if (evidence.versionUiFiles.length > 0) {
+      patch.features.push("Added or updated frontend version history UI for browsing project memory versions.");
     }
 
-    if (suggestionTitle === "Suggestion Apply Idempotency Fixed") {
-      patch.issues.push("Fixed duplicate suggestion apply behavior that could create repeated ContextVersion records.");
-      patch.decisions.push("A ContextSuggestion can only be applied once, and no ContextVersion should be created when no ProjectContext changes are detected.");
-      patch.constraints.push("Applying an already-applied or duplicate suggestion must not create a new version.");
-      patch.architectureNotes.push("Suggestion apply flow now checks status and detects no-op patches before version creation.");
+    if (evidence.landingFiles.length > 0) {
+      patch.features.push("Added or updated landing page UI and associated frontend styling.");
     }
 
-    if (suggestionTitle === "AI Context Handoff Improved") {
-      patch.features.push("Improved context_load output to return a structured AI-ready project handoff instead of a short summary.");
-      patch.decisions.push("context_load should serve optimized full project context by default while raw context remains available only through raw mode.");
-      patch.architectureNotes.push("Optimized context output separates stored ProjectContext from AI-ready loaded context.");
-      patch.nextSteps.push("Verify context_load and context_smart outputs are useful as cross-AI continuation briefs.");
+    if (evidence.styleFiles.length > 0 && evidence.landingFiles.length === 0 && evidence.versionUiFiles.length === 0) {
+      patch.features.push("Updated frontend styling for the user-facing interface.");
     }
 
-    if (suggestionTitle === "GitHub Review Queue Added") {
-      patch.features.push("Added GitHub webhook processing and review queue support for pending context suggestions.");
-      patch.decisions.push("GitHub push and pull request events should create pending suggestions rather than directly mutating ProjectContext.");
-      patch.architectureNotes.push("GitHub webhook events are stored as GitHubEvent records and converted into ContextSuggestion records for review.");
-      patch.nextSteps.push("Verify GitHub push and pull request events appear in the dashboard review queue.");
+    if (isFrontendOnly(evidence) && patch.features.length === 0) {
+      patch.features.push(commitSubject
+        ? `Updated frontend UI related to ${commitSubject}.`
+        : "Updated frontend UI files.");
     }
 
-    if (suggestionTitle === "Version History Improved") {
-      patch.features.push("Auto-generated readable version titles, summaries, changed section counts, and previews.");
-      patch.decisions.push("Users should not manually write version change summaries.");
-      patch.architectureNotes.push("Version metadata is generated by comparing previous and next ProjectContext state after an official change.");
+    if (evidence.backendVersionFiles.length > 0 && includesAny(text, ["metadata", "summary", "summaries", "changed section", "preview"])) {
+      patch.features.push("Updated backend version metadata generation for readable version history.");
+      patch.architectureNotes.push("Backend version metadata logic derives readable version summaries from ProjectContext changes.");
     }
 
-    if (includesAny(signalText, keywordGroups.feature) && patch.features.length === 0) {
-      patch.features.push(`Added or improved project capability indicated by GitHub change: ${sourceSummary}.`);
+    if (evidence.githubFiles.length > 0) {
+      patch.features.push("Updated GitHub integration behavior.");
+      if (!isFrontendOnly(evidence)) {
+        patch.architectureNotes.push("GitHub integration changes are handled through webhook/event processing and reviewable suggestions.");
+      }
     }
 
-    if (includesAny(signalText, keywordGroups.fix) && patch.issues.length === 0) {
-      patch.issues.push(`Fixed issue indicated by GitHub change: ${sourceSummary}.`);
+    if (evidence.mcpFiles.length > 0) {
+      patch.features.push("Updated MCP integration behavior.");
+      if (!isFrontendOnly(evidence)) {
+        patch.architectureNotes.push("MCP integration changes affect AI-tool access to project memory.");
+      }
     }
 
-    if (includesAny(signalText, keywordGroups.architecture)) {
-      patch.architectureNotes.push(`Architecture or backend structure changed based on GitHub change: ${sourceSummary}.`);
+    if (evidence.authFiles.length > 0) {
+      patch.features.push("Updated authentication, session, or API key behavior.");
+      if (hasExplicitConstraint(text)) {
+        patch.constraints.push("Authentication and API key changes must preserve ownership and access-scope checks.");
+      }
     }
 
-    if (includesAny(signalText, keywordGroups.security) && suggestionTitle !== "MCP API Key Authentication Added") {
-      patch.decisions.push("Authentication, authorization, or security behavior changed and should be reflected in project memory.");
-      patch.constraints.push("Security-sensitive changes must preserve ownership checks, scope checks, secret handling, and ProjectContext mutation safety.");
-      patch.architectureNotes.push(`Security-related GitHub change detected in ${input.repoOwner}/${input.repoName}.`);
+    if (evidence.databaseFiles.length > 0) {
+      patch.architectureNotes.push("Database, Prisma schema, or migration files changed.");
     }
 
-    if (includesAny(signalText, keywordGroups.mcpContext) && suggestionTitle !== "AI Context Handoff Improved") {
-      patch.architectureNotes.push("GitHub change appears related to Context Vault memory, ProjectContext, suggestions, versioning, MCP, or AI handoff behavior.");
+    if (isDocsOnly(evidence)) {
+      patch.features.push("Updated project documentation.");
     }
 
-    if (includesAny(signalText, keywordGroups.github) && suggestionTitle !== "GitHub Review Queue Added") {
-      patch.decisions.push("GitHub changes should remain review-first and create pending ContextSuggestion records before official context updates.");
-      patch.architectureNotes.push("GitHub sync behavior is part of the review queue and ContextSuggestion pipeline.");
+    if (includesAny(text, ["fix", "fixed", "resolve", "resolved", "bug"]) && patch.features.length === 0) {
+      patch.features.push(commitSubject ? `Resolved issue related to ${commitSubject}.` : "Resolved an issue indicated by the GitHub change.");
     }
 
-    if (includesAny(signalText, keywordGroups.frontend)) {
-      patch.features.push("Updated dashboard or frontend workflow for reviewing and managing Context Vault project memory.");
-      patch.architectureNotes.push("React dashboard remains the user-facing review/control layer for Context Vault.");
+    if (isFrontendOnly(evidence) && (evidence.versionUiFiles.length > 0 || evidence.landingFiles.length > 0)) {
+      patch.architectureNotes.push("Frontend includes landing and version-history pages as part of the React/Vite dashboard or public UI.");
+    } else if (isFrontendOnly(evidence)) {
+      patch.architectureNotes.push("Frontend UI files changed without backend, database, MCP, or GitHub webhook changes.");
     }
 
-    if (includesAny(signalText, keywordGroups.dependency)) {
-      patch.dependencies.push(`Review dependency, package, SDK, Prisma migration, or schema change: ${sourceSummary}.`);
-      patch.architectureNotes.push("Dependency or database-related GitHub change detected; verify setup and migration notes.");
+    if (hasExplicitDecision(text) && !isFrontendOnly(evidence)) {
+      patch.decisions.push(`Durable decision indicated by GitHub change: ${commitSubject || "see GitHub event metadata"}.`);
     }
 
-    if (includesAny(signalText, ["remove", "removed", "deprecate", "deprecated", "delete", "deleted"])) {
-      patch.decisions.push(`Review removed or deprecated behavior from GitHub change: ${sourceSummary}.`);
-      patch.nextSteps.push("Confirm whether removed/deprecated behavior should be reflected in Context Vault memory.");
+    if (hasExplicitConstraint(text) && !isFrontendOnly(evidence)) {
+      patch.constraints.push(`Active constraint indicated by GitHub change: ${commitSubject || "see GitHub event metadata"}.`);
     }
 
-    if (includesAny(signalText, ["test", "spec", "coverage"])) {
-      patch.nextSteps.push(`Review test coverage implications from GitHub change: ${sourceSummary}.`);
-      patch.architectureNotes.push("Testing or coverage-related GitHub change detected.");
+    if (hasExplicitFollowUp(text)) {
+      patch.nextSteps.push(`Follow-up indicated by GitHub change: ${commitSubject || "see GitHub event metadata"}.`);
     }
 
-    const changedFileSummary = summarizeFiles(input.changedFiles);
-    if (changedFileSummary) {
-      patch.architectureNotes.push(`Changed files observed without storing raw patches: ${changedFileSummary}.`);
+    addDependencyHints(patch, text, evidence);
+
+    if (patch.features.length === 0 && patch.architectureNotes.length === 0 && !isDocsOnly(evidence)) {
+      if (evidence.files.length > 0 && commitSubject) {
+        patch.features.push(`Updated files related to ${commitSubject}.`);
+      }
     }
 
-    if (input.eventType === "push") {
-      patch.nextSteps.push(
-        `Review GitHub push ${input.commitSha ?? "unknown sha"} on ${input.branch ?? "unknown branch"} and apply this suggestion only if it accurately reflects completed behavior, architecture, dependencies, known issues, or AI handoff instructions.`
-      );
-    } else if (input.merged) {
-      patch.nextSteps.push(
-        `Review merged PR #${input.prNumber}: ${input.title ?? "untitled"} and apply this context update if the merged changes are represented accurately.`
-      );
-    } else if (input.action === "closed") {
-      patch.nextSteps.push(
-        `Review closed PR #${input.prNumber}: ${input.title ?? "untitled"} before applying any project memory update.`
-      );
-    } else if (input.action === "synchronize") {
-      patch.nextSteps.push(
-        `Review updated PR #${input.prNumber}: ${input.title ?? "untitled"} because the pull request changes were synchronized.`
-      );
-    } else {
-      patch.nextSteps.push(
-        `Review PR #${input.prNumber}: ${input.title ?? "untitled"} before applying project memory changes.`
-      );
-    }
+    const cleanedPatch = cleanPatch(patch);
+    const meaningfulSignals = patchFields.reduce((total, field) => total + cleanedPatch[field].length, 0);
+    const title = titleFor(input, evidence, text);
+    const confidence: GitHubAnalysisResult["confidence"] =
+      evidence.files.length === 0
+        ? "low"
+        : meaningfulSignals >= 3
+          ? "high"
+          : meaningfulSignals >= 1
+            ? "medium"
+            : "low";
 
-    const meaningfulSignals =
-      patch.features.length +
-      patch.decisions.length +
-      patch.issues.length +
-      patch.dependencies.length +
-      patch.constraints.length +
-      patch.architectureNotes.length;
-
-    if (meaningfulSignals === 0) {
-      patch.nextSteps.push("Review the GitHub change and apply a context update only if it affects product behavior, architecture, dependencies, known issues, or AI handoff instructions.");
-    }
-
-    const confidence: GitHubAnalysisResult["confidence"] = input.eventType === "pull_request" && input.merged
-      ? "high"
-      : input.eventType === "pull_request"
-        ? "medium"
-        : meaningfulSignals >= 5 ? "high" : meaningfulSignals >= 2 ? "medium" : "low";
+    const fileSummary = changedFileSummary(evidence);
+    const matchedCategories = [
+      evidence.frontendFiles.length > 0 ? "frontend" : undefined,
+      evidence.versionUiFiles.length > 0 ? "version-ui" : undefined,
+      evidence.backendVersionFiles.length > 0 ? "backend-version-metadata" : undefined,
+      evidence.landingFiles.length > 0 ? "landing" : undefined,
+      evidence.styleFiles.length > 0 ? "styles" : undefined,
+      evidence.githubFiles.length > 0 ? "github" : undefined,
+      evidence.mcpFiles.length > 0 ? "mcp" : undefined,
+      evidence.authFiles.length > 0 ? "auth" : undefined,
+      evidence.databaseFiles.length > 0 ? "database" : undefined,
+      evidence.packageFiles.length > 0 ? "package" : undefined,
+      evidence.docsFiles.length > 0 ? "docs" : undefined,
+      evidence.testFiles.length > 0 ? "tests" : undefined
+    ].filter((item): item is string => Boolean(item));
 
     const reasoningSummary = [
-      `Rule-based GitHub analysis used event type, action, branch, title, commit messages, and safe changed-file metadata for ${input.repoOwner}/${input.repoName}.`,
-      matchedGroups.length > 0 ? `Matched categories: ${matchedGroups.join(", ")}.` : "No strong category matched; fallback review step generated.",
-      input.eventType === "pull_request" && input.action ? `Pull request action: ${input.action}${input.merged ? " and merged" : ""}.` : "",
-      `Confidence: ${confidence}.`
+      `Evidence-bound GitHub analysis used ${input.eventType} metadata, commit messages, and changed file paths for ${input.repoOwner}/${input.repoName}.`,
+      matchedCategories.length > 0 ? `Matched categories: ${matchedCategories.join(", ")}.` : "No strong file-path category matched.",
+      fileSummary ? `Changed files: ${fileSummary}.` : "",
+      `Unsupported sections were left empty. Confidence: ${confidence}.`
     ].filter(Boolean).join(" ");
 
     return {
-      title: suggestionTitle,
-      suggestionTitle,
-      suggestedPatch: {
-        features: unique(patch.features),
-        decisions: unique(patch.decisions),
-        issues: unique(patch.issues),
-        dependencies: unique(patch.dependencies),
-        constraints: unique(patch.constraints),
-        nextSteps: unique(patch.nextSteps),
-        architectureNotes: unique(patch.architectureNotes)
-      },
+      title,
+      suggestionTitle: title,
+      suggestedPatch: cleanedPatch,
       confidence,
       reasoningSummary
     };
