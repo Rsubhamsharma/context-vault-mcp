@@ -21,13 +21,11 @@ const fieldLabels: Record<string, string> = {
 
 const sourceLabels: Record<string, string> = {
   github: "GitHub",
-  github_app: "GitHub",
   mcp: "MCP",
   manual: "Manual",
-  manual_capture: "Manual",
   ai: "Auto Capture",
-  auto_capture: "Auto Capture",
-  cleanup: "Cleanup"
+  cleanup: "Cleanup",
+  unknown: "Unknown"
 };
 
 const sourceFilters = [
@@ -35,7 +33,9 @@ const sourceFilters = [
   { value: "github", label: "GitHub" },
   { value: "mcp", label: "MCP" },
   { value: "manual", label: "Manual" },
-  { value: "auto", label: "Auto Capture" }
+  { value: "ai", label: "Auto Capture" },
+  { value: "cleanup", label: "Cleanup" },
+  { value: "unknown", label: "Unknown" }
 ];
 
 const modeOptions = [
@@ -45,17 +45,24 @@ const modeOptions = [
   { value: "session_summary", label: "Session Summary" }
 ];
 
-function sourceLabel(source: string) {
-  return sourceLabels[source] ?? source.replace(/_/g, " ");
+function normalizeSourceValue(source?: string) {
+  return (source ?? "").trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
 }
 
-function sourceGroup(source: string) {
-  const normalized = source.toLowerCase();
+function sourceGroup(source?: string) {
+  const normalized = normalizeSourceValue(source);
+  if (!normalized) return "unknown";
   if (normalized.includes("github")) return "github";
   if (normalized.includes("mcp")) return "mcp";
   if (normalized.includes("manual")) return "manual";
-  if (normalized.includes("auto") || normalized === "ai") return "auto";
+  if (normalized.includes("auto") || normalized === "ai") return "ai";
+  if (normalized.includes("cleanup")) return "cleanup";
   return normalized;
+}
+
+function sourceLabel(source?: string) {
+  const group = sourceGroup(source);
+  return sourceLabels[group] ?? titleCase(group);
 }
 
 function titleCase(value: string) {
@@ -322,12 +329,14 @@ function ManualSuggestionDialog({
   );
 }
 
-function SuggestionEmptyState({ hasSuggestions, onCreate }: { hasSuggestions: boolean; onCreate: () => void }) {
+function SuggestionEmptyState({ hasSuggestions, isFiltered, onCreate }: { hasSuggestions: boolean; isFiltered: boolean; onCreate: () => void }) {
   return (
     <div className="reviewQueueEmpty">
-      <h3>{hasSuggestions ? "No pending suggestions" : "No suggestions yet"}</h3>
+      <h3>{isFiltered ? "No suggestions match these filters" : hasSuggestions ? "No pending suggestions" : "No suggestions yet"}</h3>
       <p>
-        {hasSuggestions
+        {isFiltered
+          ? "Try a different status, source, or search term."
+          : hasSuggestions
           ? "Your review queue is clear."
           : "Suggestions appear when GitHub events, MCP tools, manual capture, or AI agents propose memory updates."}
       </p>
@@ -499,9 +508,21 @@ export function SuggestionsPage() {
         </div>
 
         {loading ? <SuggestionsSkeleton /> : filteredSuggestions.length === 0 ? (
-          <SuggestionEmptyState hasSuggestions={suggestions.length > 0} onCreate={() => setManualDialogOpen(true)} />
+          <SuggestionEmptyState
+            hasSuggestions={suggestions.length > 0}
+            isFiltered={suggestions.length > 0 && (statusFilter !== "pending" || sourceFilter !== "all" || Boolean(search.trim()))}
+            onCreate={() => setManualDialogOpen(true)}
+          />
         ) : (
-          <div className="reviewQueueList">
+          <div
+            className="reviewQueueList scrollableVersionList"
+            style={{
+              height: "auto",
+              maxHeight: filteredSuggestions.length === 1 ? "none" : "min(1120px, calc(100dvh - 280px))",
+              overflowY: filteredSuggestions.length === 1 ? "visible" : "auto",
+              background: "transparent"
+            }}
+          >
             {filteredSuggestions.map((item) => (
               <SuggestionReviewItem
                 key={item.id}

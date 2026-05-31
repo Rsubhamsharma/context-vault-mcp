@@ -258,10 +258,15 @@ function AnimatedSuggestionFlow({ active = 0 }: { active?: number }) {
             <stop offset="100%" stopColor="#7fe1ad" stopOpacity=".42" />
           </linearGradient>
         </defs>
-        <path className="cv-flowPath" d="M70 84 C170 18 230 144 330 82 S500 30 650 82" />
+        <path id="github-memory-flow-path" className="cv-flowPath" d="M70 84 C170 18 230 144 330 82 S500 30 650 82" />
         <path className="cv-flowDash" d="M70 84 C170 18 230 144 330 82 S500 30 650 82" />
+        <circle className="cv-flowTraveler" r="5">
+          <animateMotion dur="6.4s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#github-memory-flow-path" />
+          </animateMotion>
+        </circle>
         {nodes.map((node, index) => (
-          <g key={node} className={index <= active ? "is-active" : ""}>
+          <g key={node} className={index <= active ? "is-active" : ""} style={{ "--flow-step": index } as React.CSSProperties}>
             <circle cx={70 + index * 145} cy={index % 2 ? 62 : 96} r="18" />
             <text x={70 + index * 145} y={(index % 2 ? 62 : 96) + 44}>{node}</text>
           </g>
@@ -608,7 +613,9 @@ function GitHubFlowSection() {
         <RevealOnScroll className="cv-githubFlow">
           <AnimatedSuggestionFlow active={4} />
           <div className="cv-flowLabels">
-            {["GitHub push / PR", "AI-refined suggestion", "User review", "ContextVersion snapshot"].map((item) => <span key={item}>{item}</span>)}
+            {["GitHub push / PR", "AI-refined suggestion", "User review", "ContextVersion snapshot"].map((item, index) => (
+              <span key={item} style={{ "--flow-label": index } as React.CSSProperties}>{item}</span>
+            ))}
           </div>
         </RevealOnScroll>
         <RevealOnScroll className="cv-suggestionPreview" delay={120}>

@@ -8016,6 +8016,21 @@ textarea {
   pointer-events: none;
 }
 
+.versionTimelineIndicator {
+  position: absolute;
+  left: 5px;
+  top: 0;
+  z-index: 3;
+  width: 13px;
+  height: 13px;
+  border: 1px solid color-mix(in oklch, var(--success) 40%, white);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--success) 16%, white);
+  box-shadow: 0 0 0 5px color-mix(in oklch, var(--success) 9%, transparent);
+  pointer-events: none;
+  transition: transform 210ms var(--ease-out), border-color 170ms var(--ease-out), background-color 170ms var(--ease-out), box-shadow 170ms var(--ease-out);
+}
+
 .versionHistoryItem {
   position: relative;
   display: grid;
@@ -8067,6 +8082,11 @@ textarea {
   border-color: color-mix(in oklch, var(--success) 36%, white);
   background: color-mix(in oklch, var(--success) 14%, white);
   box-shadow: 0 0 0 4px color-mix(in oklch, var(--success) 9%, transparent);
+}
+
+.versionHistoryItem.isPreview::before {
+  border-color: color-mix(in oklch, var(--success) 36%, white);
+  background: color-mix(in oklch, var(--success) 14%, white);
 }
 
 .versionHistoryItem.isCurrent:not(.isActive)::before {
@@ -8568,6 +8588,10 @@ textarea {
   }
 
   .versionHistoryItem {
+    transition-duration: 1ms !important;
+  }
+
+  .versionTimelineIndicator {
     transition-duration: 1ms !important;
   }
 }
@@ -11407,6 +11431,12 @@ select,
   background: color-mix(in oklch, var(--border) 72%, transparent);
 }
 
+.appShell .versionTimelineIndicator {
+  border-color: color-mix(in oklch, var(--success) 42%, white);
+  background: color-mix(in oklch, var(--success) 16%, white);
+  box-shadow: 0 0 0 5px color-mix(in oklch, var(--success) 8%, transparent);
+}
+
 .appShell .versionMarker,
 .appShell .statusDot,
 .appShell .statusDot.success,
@@ -11736,6 +11766,16 @@ select,
 .appShell .apiKeysTable td,
 .appShell .settingsTableRow {
   border-color: color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+.appShell .reviewQueuePage .reviewPatchDetails {
+  border-color: color-mix(in oklch, var(--border) 56%, transparent);
+  background: color-mix(in oklch, var(--muted) 36%, transparent);
+}
+
+.appShell .reviewQueuePage .reviewPatchDetails section {
+  border-color: color-mix(in oklch, var(--border) 46%, transparent);
+  background: transparent;
 }
 
 /* Versions detail: document-style preview, not stacked boxes */

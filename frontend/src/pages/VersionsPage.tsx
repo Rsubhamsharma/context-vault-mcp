@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, Version } from "../api/client";
 import { ErrorBox } from "../components/State";
@@ -129,15 +129,36 @@ function VersionHistoryItem({
   version,
   active,
   current,
-  onSelect
+  preview,
+  onSelect,
+  onEnter,
+  onLeave,
+  onFocus,
+  onBlur,
+  setItemRef
 }: {
   version: Version;
   active: boolean;
   current: boolean;
+  preview: boolean;
   onSelect: () => void;
+  onEnter: () => void;
+  onLeave: () => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  setItemRef: (node: HTMLButtonElement | null) => void;
 }) {
   return (
-    <button className={`versionHistoryItem secondary ${active ? "isActive" : ""} ${current ? "isCurrent" : ""} ${isNoisyVersion(version) ? "isQuiet" : ""}`} onClick={onSelect} type="button">
+    <button
+      className={`versionHistoryItem secondary ${active ? "isActive" : ""} ${preview ? "isPreview" : ""} ${current ? "isCurrent" : ""} ${isNoisyVersion(version) ? "isQuiet" : ""}`}
+      onBlur={onBlur}
+      onClick={onSelect}
+      onFocus={onFocus}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      ref={setItemRef}
+      type="button"
+    >
       <span className="versionHistoryNumber">v{version.versionNumber}</span>
       <span className="versionHistoryBody">
         <span className="versionHistoryTopline">
@@ -165,19 +186,68 @@ function VersionHistoryList({
   currentId?: string;
   onSelect: (version: Version) => void;
 }) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [indicatorY, setIndicatorY] = useState(0);
+  const indicatorId = focusedId ?? hoveredId ?? selectedId ?? versions[0]?.id;
+
+  const setItemRef = useCallback((id: string, node: HTMLButtonElement | null) => {
+    if (node) {
+      itemRefs.current.set(id, node);
+    } else {
+      itemRefs.current.delete(id);
+    }
+  }, []);
+
+  const measureIndicator = useCallback(() => {
+    if (!indicatorId) return;
+    const item = itemRefs.current.get(indicatorId);
+    const track = trackRef.current;
+    if (!item || !track) return;
+    const itemRect = item.getBoundingClientRect();
+    const trackRect = track.getBoundingClientRect();
+    setIndicatorY(itemRect.top - trackRect.top + 9.5);
+  }, [indicatorId]);
+
+  useLayoutEffect(() => {
+    measureIndicator();
+  }, [versions, selectedId, hoveredId, focusedId, measureIndicator]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const observer = new ResizeObserver(measureIndicator);
+    observer.observe(track);
+    itemRefs.current.forEach((item) => observer.observe(item));
+    window.addEventListener("resize", measureIndicator);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measureIndicator);
+    };
+  }, [measureIndicator, versions]);
+
   if (versions.length === 0) {
     return <p className="versionsNoResults">No versions match this filter.</p>;
   }
 
   return (
     <div className="scrollableVersionList">
-      <div className="versionTimelineTrack">
+      <div className="versionTimelineTrack" ref={trackRef}>
+        {indicatorId && <span className="versionTimelineIndicator" aria-hidden="true" style={{ transform: `translate3d(0, ${indicatorY}px, 0)` }} />}
         {versions.map((version) => (
           <VersionHistoryItem
             active={version.id === selectedId}
             current={version.id === currentId}
             key={version.id}
+            onBlur={() => setFocusedId(null)}
+            onEnter={() => setHoveredId(version.id)}
+            onFocus={() => setFocusedId(version.id)}
+            onLeave={() => setHoveredId(null)}
             onSelect={() => onSelect(version)}
+            preview={version.id === indicatorId}
+            setItemRef={(node) => setItemRef(version.id, node)}
             version={version}
           />
         ))}

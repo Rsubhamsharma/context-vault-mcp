@@ -909,7 +909,14 @@
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-dasharray: 72 280;
-  animation: progress 4.5s linear infinite;
+  animation: progress 6.4s linear infinite;
+}
+
+.cv-flowTraveler {
+  fill: var(--cv-accent-2);
+  stroke: rgba(255,255,255,0.82);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 8px rgba(130, 220, 255, 0.2));
 }
 
 .cv-suggestionFlow circle {
@@ -921,6 +928,8 @@
 .cv-suggestionFlow g.is-active circle {
   stroke: rgba(130, 220, 255, 0.66);
   fill: rgba(130, 220, 255, 0.12);
+  animation: flow-node-activate 6.4s var(--cv-ease-out) infinite;
+  animation-delay: calc(var(--flow-step) * 1.05s);
 }
 
 .cv-suggestionFlow text {
@@ -1335,6 +1344,8 @@
   color: #dce4f2;
   background: rgba(255,255,255,0.035);
   font-size: 13px;
+  animation: flow-label-rise 6.4s var(--cv-ease-out) infinite;
+  animation-delay: calc(var(--flow-label) * 1.05s + 0.2s);
 }
 
 .cv-suggestionPreview {
@@ -1690,6 +1701,27 @@
   to { stroke-dashoffset: -352; transform: scaleX(0.35); }
 }
 
+@keyframes flow-node-activate {
+  0%, 18%, 100% {
+    transform: scale(1);
+    transform-origin: center;
+  }
+  8% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes flow-label-rise {
+  0%, 20%, 100% {
+    opacity: 0.82;
+    transform: translateY(0);
+  }
+  9% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
 @keyframes grid-drift {
   from { background-position: 0 0; }
   to { background-position: 72px 72px; }
@@ -1933,6 +1965,10 @@
     opacity: 1 !important;
     filter: none !important;
     transform: none !important;
+  }
+
+  .cv-flowTraveler {
+    display: none;
   }
 }
 
@@ -2292,6 +2328,12 @@
 
 .cv-flowDash {
   stroke: var(--foreground);
+}
+
+.cv-flowTraveler {
+  fill: var(--foreground);
+  stroke: var(--card);
+  filter: drop-shadow(0 2px 8px color-mix(in oklch, var(--foreground) 14%, transparent));
 }
 
 .cv-suggestionFlow circle {
