@@ -33,8 +33,8 @@ const setupSteps = [
   },
   {
     title: "Load project context",
-    text: "Use Context Vault MCP and call context_load with detailLevel detailed and raw false.",
-    copy: "Use Context Vault MCP and call context_load with detailLevel detailed and raw false."
+    text: "Use Context Vault MCP and call context_load with raw false. The default compression is aggressive; use standard for fuller output or ultra for tiny context windows.",
+    copy: "Use Context Vault MCP and call context_load with raw false and compression aggressive."
   }
 ];
 
@@ -49,7 +49,8 @@ const toolNotes = [
 
 const promptRows = [
   { label: "context_health_check", purpose: "Verify connection", prompt: "Use Context Vault MCP and run context_health_check." },
-  { label: "context_load", purpose: "Load full optimized project memory", prompt: "Use Context Vault MCP and call context_load with detailLevel detailed and raw false." },
+  { label: "context_load", purpose: "Load compact project memory", prompt: "Use Context Vault MCP and call context_load with raw false and compression aggressive." },
+  { label: "context_load ultra", purpose: "Load minimal handoff", prompt: "Use Context Vault MCP and call context_load with raw false and compression ultra." },
   { label: "context_smart", purpose: "Load task-specific context", prompt: "Use Context Vault MCP and call context_smart for the task: Improve GitHub suggestions." },
   { label: "context_auto_capture", purpose: "Capture work after implementation", prompt: "Use Context Vault MCP and call context_auto_capture after meaningful implementation work." },
   { label: "github_connect_url", purpose: "Get GitHub App install URL", prompt: "Use Context Vault MCP and call github_connect_url." }
@@ -57,7 +58,7 @@ const promptRows = [
 
 const toolReference = [
   ["context_health_check", "Verify backend, API key, and project connection."],
-  ["context_load", "Load optimized latest project memory."],
+  ["context_load", "Load latest project memory. raw=false defaults to aggressive semantic compression; standard and ultra are available."],
   ["context_smart", "Load task-specific context."],
   ["context_search", "Search project memory."],
   ["context_versions", "Inspect version history."],
@@ -173,6 +174,20 @@ function McpConfigBlock({ snippet, hasApiKey }: { snippet: string; hasApiKey: bo
         </div>
       )}
       <pre><code>{snippet}</code></pre>
+    </section>
+  );
+}
+
+function CompressionGuide() {
+  return (
+    <section className="mcpToolsReference" aria-labelledby="mcp-compression-title">
+      <h2 id="mcp-compression-title">Context load compression</h2>
+      <dl>
+        <div><dt>aggressive</dt><dd>Default for raw=false. Merges repeated meaning into a compact AI handoff.</dd></div>
+        <div><dt>standard</dt><dd>Safer fuller output when you want more original section detail.</dd></div>
+        <div><dt>ultra</dt><dd>Smallest handoff for tight context windows.</dd></div>
+        <div><dt>raw=true</dt><dd>Returns full stored ProjectContext without semantic compression.</dd></div>
+      </dl>
     </section>
   );
 }
@@ -319,6 +334,7 @@ export function McpPage() {
         <McpConfigBlock snippet={snippet} hasApiKey={activeKeys.length > 0} />
       </div>
       <AiToolSetupTabs />
+      <CompressionGuide />
       <ExamplePromptList />
       <McpToolsReference />
       <McpTroubleshooting />

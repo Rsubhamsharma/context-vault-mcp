@@ -14,12 +14,20 @@ const mcpConfig = `{
     "context-vault": {
       "command": "node",
       "args": ["path/to/context-vault-mcp/build/index.js"],
-      "env": {
+        "env": {
         "CONTEXT_VAULT_API_URL": "http://localhost:4000",
         "CONTEXT_VAULT_API_KEY": "cv_live_...",
         "CONTEXT_VAULT_PROJECT_ID": "project_id"
       }
     }
+  }
+}`;
+
+const optionalCompactionConfig = `{
+  "env": {
+    "CONTEXT_VAULT_COMPACTION_AI_PROVIDER": "gemini",
+    "CONTEXT_VAULT_COMPACTION_AI_MODEL": "gemini-2.0-flash",
+    "GEMINI_API_KEY": "your_optional_gemini_key"
   }
 }`;
 
@@ -156,6 +164,7 @@ const sections: DocsSection[] = [
           ["ContextSuggestion", "A proposed change to ProjectContext. Suggestions can come from GitHub, MCP, manual capture, or auto capture. They do not change official memory until applied."],
           ["ContextVersion", "An immutable snapshot of ProjectContext created after a meaningful official update. Versions let users inspect how memory changed over time."],
           ["MCP Server", "The integration layer that lets AI tools call context_load, context_smart, context_auto_capture, and other Context Vault tools."],
+          ["Context Load Compression", "The raw=false handoff can use standard, aggressive, or ultra compression. Aggressive is the default for compact cross-AI handoffs."],
           ["API Key", "A scoped credential for MCP clients. Keys can read context and create suggestions, but must not directly mutate ProjectContext."],
           ["GitHub App", "The official GitHub integration. Users select repositories, and push or PR events create reviewable suggestions."]
         ]} />
@@ -202,24 +211,37 @@ const sections: DocsSection[] = [
         <ul><li>Backend running and reachable from the MCP client.</li><li>Context Vault MCP server built.</li><li>Project created and project ID copied.</li><li>API key created with context:read and context:write:suggestion.</li></ul>
         <h3>Configuration</h3>
         <DocsCodeBlock code={mcpConfig} />
+        <DocsCallout title="Optional AI compaction" tone="info">Set CONTEXT_VAULT_COMPACTION_AI_PROVIDER=gemini and GEMINI_API_KEY only if you want AI-assisted semantic compaction. If it is missing or fails, Context Vault falls back to deterministic compression.</DocsCallout>
+        <DocsCodeBlock code={optionalCompactionConfig} />
         <DocsStepList steps={[
           "Create an API key.",
           "Copy MCP config.",
           "Add config to your AI tool.",
           "Restart the AI tool.",
           "Run context_health_check.",
-          "Run context_load.",
+          "Run context_load with raw false. Aggressive compression is the default.",
           "Use context_smart for task-specific context.",
           "Use context_auto_capture after meaningful work."
         ]} />
         <h3>Command examples</h3>
         <DocsTable rows={[
           ["context_health_check", "Verify backend, API key, and project access."],
-          ["context_load", "Load optimized latest project memory with detailLevel detailed and raw false."],
+          ["context_load", "Load latest project memory. raw=false defaults to compression aggressive."],
+          ["context_load compression=standard", "Return a fuller optimized handoff when you want more detail."],
+          ["context_load compression=aggressive", "Return the compact semantic handoff recommended for normal MCP use."],
+          ["context_load compression=ultra", "Return the smallest useful handoff for tight context windows."],
+          ["context_load raw=true", "Return full official ProjectContext unchanged, without optimized formatting."],
           ["context_smart", "Load context filtered to a specific task."],
           ["context_auto_capture", "Create a pending suggestion after meaningful implementation work."],
           ["github_connect_url", "Return the GitHub App installation URL."]
         ]} />
+        <h3>Compression behavior</h3>
+        <ul>
+          <li>standard keeps the safer expanded optimized handoff.</li>
+          <li>aggressive merges repeated source-of-truth, review-first, API key, GitHub, MCP, and versioning rules into compact sections.</li>
+          <li>ultra keeps only the essentials for small context windows.</li>
+          <li>raw=true is for inspection and debugging; it does not use semantic compression.</li>
+        </ul>
       </>
     )
   },

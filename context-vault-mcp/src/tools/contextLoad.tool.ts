@@ -7,6 +7,7 @@ import { formatProjectHandoff } from "../lib/formatContext.js";
 const inputSchema = {
   projectId: z.string().optional().describe("Context Vault project ID. Defaults to CONTEXT_VAULT_PROJECT_ID."),
   detailLevel: z.enum(["compact", "standard", "detailed"]).optional().describe("Controls handoff detail. Defaults to standard."),
+  compression: z.enum(["standard", "aggressive", "ultra"]).optional().describe("Controls optimized handoff compression. Defaults to aggressive for raw=false."),
   raw: z.boolean().optional().describe("Return raw stored ProjectContext instead of optimized AI-ready context.")
 };
 
@@ -26,7 +27,7 @@ export const registerContextLoadTool = (
           raw: input.raw
         });
         return {
-          content: [{ type: "text", text: formatProjectHandoff(context, input.detailLevel ?? "standard") }]
+          content: [{ type: "text", text: await formatProjectHandoff(context, input.detailLevel ?? "standard", input.compression ?? "aggressive") }]
         };
       } catch (error) {
         return {

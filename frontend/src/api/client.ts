@@ -10,6 +10,14 @@ export type Project = {
   context?: { currentVersionNumber: number; updatedAt: string } | null;
 };
 
+export type User = {
+  id: string;
+  email: string;
+  name?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type ProjectContext = {
   goal: string;
   techStack: unknown;
@@ -165,16 +173,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   login: (body: { email: string; password: string }) =>
-    request<{ token: string; user: unknown }>("/api/auth/login", {
+    request<{ token: string; user: User }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(body)
     }),
   signup: (body: { email: string; password: string; name?: string }) =>
-    request<{ token: string; user: unknown }>("/api/auth/signup", {
+    request<{ token: string; user: User }>("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify(body)
     }),
-  me: () => request<{ user: unknown }>("/api/auth/me"),
+  me: () => request<{ user: User }>("/api/auth/me"),
   projects: () => request<{ projects: Project[] }>("/api/projects"),
   createProject: (body: { name: string; description?: string; repoUrl?: string; defaultBranch?: string }) =>
     request<{ project: Project }>("/api/projects", { method: "POST", body: JSON.stringify(body) }),

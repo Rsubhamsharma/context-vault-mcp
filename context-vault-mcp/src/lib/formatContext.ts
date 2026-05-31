@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { env } from "../config/env.js";
 import type { HistoricalContextVersion, OptimizedContextResponse, ProjectContext } from "./contextVaultClient.js";
 
 const toTextItems = (value: unknown): string[] => {
@@ -272,6 +274,7 @@ export const formatSmartContext = (context: ProjectContext, task: string): strin
 };
 
 type DetailLevel = "compact" | "standard" | "detailed";
+type CompressionLevel = "standard" | "aggressive" | "ultra";
 
 const includesAny = (text: string, terms: string[]): boolean => {
   const normalized = text.toLowerCase();
@@ -445,6 +448,406 @@ const workingFlow = [
   "The AI receives optimized latest project context as a working handoff."
 ];
 
+type SemanticStats = {
+  removedDuplicateCount: number;
+  mergedRelatedItemCount: number;
+  removedStaleResolvedItemCount: number;
+};
+
+const newSemanticStats = (): SemanticStats => ({
+  removedDuplicateCount: 0,
+  mergedRelatedItemCount: 0,
+  removedStaleResolvedItemCount: 0
+});
+
+const semanticKey = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const wordOverlap = (left: string, right: string): number => {
+  const leftWords = new Set(semanticKey(left).split(" ").filter((word) => word.length >= 4));
+  const rightWords = new Set(semanticKey(right).split(" ").filter((word) => word.length >= 4));
+  if (leftWords.size === 0 || rightWords.size === 0) {
+    return 0;
+  }
+  const intersection = [...leftWords].filter((word) => rightWords.has(word)).length;
+  return intersection / Math.max(leftWords.size, rightWords.size);
+};
+
+const staleResolvedPrefixes = [
+  "fixed or addressed issue",
+  "implementation summary",
+  "verification captured",
+  "capture mode"
+];
+
+const staleResolvedFragments = [
+  "review github push",
+  "abc123postmantest",
+  "smartgithub001",
+  "14737f810afcf6c1d706d236c1d4d40c5156ea97",
+  "f5e66921f7568b900d8055b7361c61887bce0772",
+  "need api tests later",
+  "manual github webhook setup is acceptable for mvp",
+  "old temporary github setup debugging"
+];
+
+const isStaleResolvedNoise = (item: string): boolean => {
+  const key = semanticKey(item);
+  return staleResolvedPrefixes.some((prefix) => key.startsWith(prefix)) ||
+    staleResolvedFragments.some((fragment) => key.includes(fragment));
+};
+
+const compactItems = (items: string[], stats: SemanticStats): string[] => {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const rawItem of items) {
+    const item = rawItem.replace(/\s+/g, " ").trim();
+    if (!item) {
+      continue;
+    }
+    if (isStaleResolvedNoise(item)) {
+      stats.removedStaleResolvedItemCount += 1;
+      continue;
+    }
+    const key = semanticKey(item);
+    if (!key || seen.has(key) || result.some((existing) => wordOverlap(existing, item) >= 0.82)) {
+      stats.removedDuplicateCount += 1;
+      continue;
+    }
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+};
+
+const countRelatedMerges = (items: string[], stats: SemanticStats): void => {
+  const groups = [
+    ["source of truth", ["source of truth", "projectcontext", "official", "cumulative", "github stores code", "ai readable"]],
+    ["review first", ["auto apply", "review", "apply", "reject", "pending", "suggestion"]],
+    ["api keys", ["api key", "scoped", "hash", "ownership", "mutate official"]],
+    ["github", ["github", "webhook", "githubevent", "github app", "repository"]],
+    ["mcp", ["mcp", "context load", "context smart", "ai tool", "stdio"]],
+    ["versions", ["version", "snapshot", "contextversion", "duplicate", "no op"]],
+    ["auth", ["auth", "jwt", "login", "ownership"]],
+    ["ui", ["dashboard", "react", "vite", "frontend", "page"]]
+  ] as const;
+  const normalizedItems = items.map(semanticKey);
+  for (const [, terms] of groups) {
+    const matches = normalizedItems.filter((item) => terms.some((term) => item.includes(semanticKey(term))));
+    if (matches.length > 1) {
+      stats.mergedRelatedItemCount += matches.length - 1;
+    }
+  }
+};
+
+const compactAllContextItems = (
+  context: NonNullable<OptimizedContextResponse["optimizedContext"]>,
+  stats: SemanticStats
+): string[] => {
+  const compacted = compactItems([
+    context.goal,
+    ...context.techStack,
+    ...context.features,
+    ...context.decisions,
+    ...context.constraints,
+    ...context.issues,
+    ...context.dependencies,
+    ...context.nextSteps,
+    ...context.architectureNotes,
+    context.aiInstructions
+  ], stats);
+  countRelatedMerges(compacted, stats);
+  return compacted;
+};
+
+const hasSignal = (items: string[], terms: string[]): boolean => {
+  const text = semanticKey(items.join(" "));
+  return terms.some((term) => text.includes(semanticKey(term)));
+};
+
+const compactLimit = (compression: CompressionLevel, aggressiveLimit: number, ultraLimit: number): number =>
+  compression === "ultra" ? ultraLimit : aggressiveLimit;
+
+const compactSection = (items: string[], limit: number): string[] => items.slice(0, limit);
+
+const buildStackBullet = (context: NonNullable<OptimizedContextResponse["optimizedContext"]>): string => {
+  const stack = new Set([...context.techStack, ...context.dependencies].map(semanticKey));
+  const has = (name: string) => [...stack].some((item) => item.includes(semanticKey(name)));
+  const backend = [
+    has("node") ? "Node.js" : null,
+    has("express") ? "Express" : null,
+    "TypeScript",
+    has("prisma") ? "Prisma" : null,
+    has("postgres") ? "PostgreSQL" : null,
+    has("zod") ? "Zod" : null,
+    has("jwt") ? "JWT" : null,
+    has("bcrypt") ? "bcrypt" : null
+  ].filter(Boolean).join(", ");
+  const frontend = [has("react") ? "React" : null, has("vite") ? "Vite" : null, "TypeScript"].filter(Boolean).join(", ");
+  return `Stack: backend ${backend}; frontend ${frontend}; integrations MCP TypeScript SDK, GitHub App/Webhooks, scoped API keys.`;
+};
+
+const buildCapabilities = (
+  context: NonNullable<OptimizedContextResponse["optimizedContext"]>,
+  compression: CompressionLevel
+): string[] => {
+  const signals = compactItems([...context.features, ...context.architectureNotes], newSemanticStats());
+  const capabilities = [
+    "Auth, project management, official ProjectContext storage, cumulative merge behavior, suggestions, and immutable version history.",
+    "Scoped MCP API key creation, listing, revocation, and MCP access to context tools.",
+    "Standalone MCP stdio server exposes context_health_check, context_load, context_smart, context_search, context_versions, context_load_version, and suggestion/capture tools.",
+    "GitHub App/webhook foundation stores GitHubEvent metadata and creates reviewable ContextSuggestions.",
+    "React/Vite dashboard covers projects, context, suggestions, versions, GitHub setup, API keys, MCP setup, and docs.",
+    "Version metadata and duplicate/no-op suggestion protection are implemented.",
+    "GitHub suggestion refinement can use deterministic analysis and optional Gemini refinement with safe fallback.",
+    "Optimized context export supports semantic compression levels for MCP handoffs."
+  ];
+  if (!hasSignal(signals, ["gemini", "refinement"])) {
+    capabilities.splice(6, 1);
+  }
+  return compactSection(capabilities, compactLimit(compression, 8, 5));
+};
+
+const buildGaps = (
+  context: NonNullable<OptimizedContextResponse["optimizedContext"]>,
+  stats: SemanticStats,
+  compression: CompressionLevel
+): string[] => {
+  const useful = compactItems([...context.issues, ...context.nextSteps], stats);
+  const gaps = [
+    hasSignal(useful, ["smart github", "github suggestion"]) ? "Improve smart GitHub suggestion quality beyond generic placeholder suggestions." : null,
+    hasSignal(useful, ["context smart", "handoff"]) ? "Improve context_smart task-specific handoff output." : null,
+    hasSignal(useful, ["demo", "screenshots", "presentation"]) ? "Polish demo data, fallback screenshots, recorded flow, and presentation path." : null,
+    hasSignal(useful, ["api key", "revocation", "scope"]) ? "Verify API key creation, revocation, scope enforcement, and MCP client access." : null,
+    hasSignal(useful, ["optimizer skill", "plugin"]) ? "Later: build Context Optimizer skill/plugin for token-efficient memory workflows." : null,
+    hasSignal(useful, ["github app", "repository mapping"]) ? "Later: continue hardening GitHub App installation and repository mapping flows." : null
+  ].filter((item): item is string => Boolean(item));
+  return compactSection(gaps.length > 0 ? gaps : ["Continue improving MCP handoff quality, GitHub suggestion quality, and demo readiness."], compactLimit(compression, 5, 3));
+};
+
+const buildActiveConstraints = (
+  context: NonNullable<OptimizedContextResponse["optimizedContext"]>,
+  stats: SemanticStats,
+  compression: CompressionLevel
+): string[] => {
+  const constraints = compactItems(context.constraints, stats);
+  const merged = [
+    "Never auto-apply GitHub, MCP, AI, or cleanup suggestions; official memory changes require explicit review/apply or authorized manual update.",
+    "Every meaningful official ProjectContext change creates one immutable ContextVersion snapshot; duplicate, already-applied, or no-op suggestions must not create versions.",
+    "MCP context output must remain complete enough for cross-AI continuity while preserving ProjectContext as cumulative source of truth.",
+    "Scoped API keys must enforce project ownership, show raw values only once, store only hashes, and never directly mutate official ProjectContext.",
+    "GitHub webhook handling must avoid storing/logging secrets or full sensitive payloads.",
+    "Do not change storage, auth, suggestion/version behavior, dashboard UI, or MCP tool names when improving optimized output."
+  ];
+  const extra = constraints.filter((item) =>
+    !hasSignal([item], ["auto apply", "version", "api key", "ownership", "hash", "webhook", "secret", "projectcontext", "mcp"])
+  );
+  return compactSection([...merged, ...extra], compactLimit(compression, 8, 5));
+};
+
+const buildSemanticHandoffBody = (
+  result: OptimizedContextResponse,
+  compression: Exclude<CompressionLevel, "standard">,
+  stats: SemanticStats
+): string => {
+  const context = result.optimizedContext;
+  if (!context) {
+    return "Context Vault optimized context was not available.";
+  }
+
+  compactAllContextItems(context, stats);
+  const architecture = [
+    buildStackBullet(context),
+    "Backend owns JWT auth, project ownership checks, ProjectContext, ContextSuggestion, ContextVersion, API keys, GitHub connections, and webhooks.",
+    "ProjectContext is the latest official cumulative memory; ContextVersion stores immutable full snapshots; ContextSuggestion stores pending proposed patches.",
+    "MCP stdio server authenticates with scoped API keys and exposes context tools to Codex, Cursor, Claude Desktop, Windsurf, Claude Code, and similar clients.",
+    "Dashboard is the user review/control layer for projects, context, suggestions, versions, GitHub setup, MCP setup, docs, and API keys.",
+    "GitHub App/webhooks create GitHubEvent records and pending ContextSuggestions; connected repo UX and install redirects are implemented."
+  ];
+  const workflow = [
+    "User creates a project and stores official AI-readable ProjectContext.",
+    "User connects MCP/API keys and optionally GitHub.",
+    "GitHub, MCP, dashboard, AI capture, or cleanup flows create pending ContextSuggestions.",
+    "User reviews then applies or rejects suggestions.",
+    "Meaningful applied changes merge cumulatively into ProjectContext and create ContextVersion snapshots.",
+    "AI tools call context_load/context_smart to continue from latest project memory."
+  ];
+  const safetyRules = [
+    "Review-first memory model: suggestions from GitHub, MCP, AI, dashboard, or cleanup never auto-apply.",
+    "API keys can read context and create suggestions only; they cannot bypass ownership checks or mutate official memory.",
+    "Raw API keys are shown once and stored only as hashes.",
+    "Duplicate, already-applied, or no-op suggestion apply attempts must return safely without extra versions.",
+    "Raw context remains available only through raw=true; optimized output is formatting/compression only and must not alter stored ProjectContext.",
+    "Latest MCP context must stay cumulative and portable across AI tools."
+  ];
+  const aiInstructions = [
+    "Treat this handoff as the working source of truth for implementation.",
+    "Respect review-first memory updates and scoped MCP access.",
+    "Create pending Context Vault suggestions for meaningful project changes instead of mutating official memory directly.",
+    "Preserve cumulative project memory unless the user explicitly requests cleanup or replacement.",
+    "When uncertain, prefer current active behavior over historical implementation notes."
+  ];
+
+  return [
+    "# Context Vault - AI Handoff",
+    "",
+    "## Product Identity",
+    bullets(compactSection([
+      "Persistent cross-AI project memory layer for AI-assisted development: GitHub stores code, Context Vault stores AI-readable project memory.",
+      "ProjectContext is the official cumulative source of truth; ContextVersions preserve immutable snapshots.",
+      "MCP is the AI-tool access layer; dashboard is the review/control layer.",
+      context.goal || "Build account-based project memory that lets users switch AI tools without losing context."
+    ], compactLimit(compression, 5, 3))),
+    "",
+    "## Current Architecture",
+    bullets(compactSection(architecture, compactLimit(compression, 6, 4))),
+    "",
+    "## Core Workflow",
+    bullets(compactSection(workflow, compactLimit(compression, 6, 4))),
+    "",
+    "## Safety / Access Rules",
+    bullets(compactSection(safetyRules, compactLimit(compression, 6, 4))),
+    "",
+    "## Current Capabilities",
+    bullets(buildCapabilities(context, compression)),
+    "",
+    "## Active Constraints",
+    bullets(buildActiveConstraints(context, stats, compression)),
+    "",
+    "## Current Gaps / Next Work",
+    bullets(buildGaps(context, stats, compression)),
+    "",
+    "## AI Handoff Instructions",
+    bullets(compactSection(aiInstructions, compactLimit(compression, 5, 4)))
+  ].join("\n");
+};
+
+const appendSemanticTokenSummary = (
+  body: string,
+  result: OptimizedContextResponse,
+  compression: CompressionLevel
+): string => {
+  const optimizedEstimate = estimateTokens(body);
+  const rawEstimate = result.originalTokenEstimate;
+  const savings = rawEstimate > 0 ? Math.max(0, Math.round((1 - optimizedEstimate / rawEstimate) * 100)) : 0;
+  return [
+    body,
+    "",
+    "## Token Optimization Summary",
+    `- Raw token estimate: ${rawEstimate}`,
+    `- Optimized token estimate: ${optimizedEstimate}`,
+    `- Estimated savings: ${savings}%`,
+    `- Compression level: ${compression}`
+  ].join("\n");
+};
+
+const aiSemanticHandoffSchema = z.object({
+  productIdentity: z.array(z.string()).min(1).max(5),
+  currentArchitecture: z.array(z.string()).min(1).max(6),
+  coreWorkflow: z.array(z.string()).min(1).max(6),
+  safetyAccessRules: z.array(z.string()).min(1).max(6),
+  currentCapabilities: z.array(z.string()).min(1).max(8),
+  activeConstraints: z.array(z.string()).min(1).max(8),
+  currentGapsNextWork: z.array(z.string()).min(1).max(5),
+  aiHandoffInstructions: z.array(z.string()).min(1).max(5)
+});
+
+const formatAiSemanticHandoff = (handoff: z.infer<typeof aiSemanticHandoffSchema>): string => [
+  "# Context Vault - AI Handoff",
+  "",
+  "## Product Identity",
+  bullets(handoff.productIdentity),
+  "",
+  "## Current Architecture",
+  bullets(handoff.currentArchitecture),
+  "",
+  "## Core Workflow",
+  bullets(handoff.coreWorkflow),
+  "",
+  "## Safety / Access Rules",
+  bullets(handoff.safetyAccessRules),
+  "",
+  "## Current Capabilities",
+  bullets(handoff.currentCapabilities),
+  "",
+  "## Active Constraints",
+  bullets(handoff.activeConstraints),
+  "",
+  "## Current Gaps / Next Work",
+  bullets(handoff.currentGapsNextWork),
+  "",
+  "## AI Handoff Instructions",
+  bullets(handoff.aiHandoffInstructions)
+].join("\n");
+
+const readGeminiText = (value: unknown): string | null => {
+  const response = value as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  return response.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim() || null;
+};
+
+const tryAiSemanticCompaction = async (
+  result: OptimizedContextResponse,
+  compression: Exclude<CompressionLevel, "standard">,
+  stats: SemanticStats
+): Promise<string | null> => {
+  if (env.compactionAiProvider !== "gemini" || !env.geminiApiKey || !result.optimizedContext) {
+    return null;
+  }
+
+  const context = result.optimizedContext;
+  const normalizedItems = compactAllContextItems(context, stats);
+  const deterministicReference = buildSemanticHandoffBody(result, compression, newSemanticStats());
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const prompt = [
+      "Return strict JSON only. Compact this Context Vault project memory into the exact schema below.",
+      "Schema keys: productIdentity, currentArchitecture, coreWorkflow, safetyAccessRules, currentCapabilities, activeConstraints, currentGapsNextWork, aiHandoffInstructions.",
+      "Each value must be an array of concise strings.",
+      "Rules: merge related bullets; remove duplicates; preserve constraints, review-first safety, scoped API key rules, current next steps, and source-of-truth model; remove resolved/fixed implementation noise.",
+      compression === "ultra" ? "Use the smallest useful handoff." : "Use an aggressive but useful handoff.",
+      "",
+      "Normalized source items:",
+      JSON.stringify(normalizedItems),
+      "",
+      "Deterministic fallback reference:",
+      deterministicReference
+    ].join("\n");
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.compactionAiModel)}:generateContent?key=${encodeURIComponent(env.geminiApiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json"
+          }
+        })
+      }
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const text = readGeminiText(await response.json());
+    if (!text) {
+      return null;
+    }
+    const parsed = aiSemanticHandoffSchema.safeParse(JSON.parse(text));
+    return parsed.success ? formatAiSemanticHandoff(parsed.data) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const formatSmartHandoff = (
   result: import("./contextVaultClient.js").OptimizedContextResponse,
   task: string,
@@ -517,7 +920,7 @@ export const formatSmartHandoff = (
   ].join("\n");
 };
 
-export const formatProjectHandoff = (
+const formatStandardProjectHandoff = (
   result: OptimizedContextResponse,
   detailLevel: DetailLevel = "standard"
 ): string => {
@@ -594,10 +997,38 @@ export const formatProjectHandoff = (
     context.aiInstructions || "Load Context Vault context first, respect constraints, and create pending suggestions for meaningful memory updates.",
     "",
     "## Token Optimization Summary",
-    `- Original token estimate: ${result.originalTokenEstimate}`,
+    `- Raw token estimate: ${result.originalTokenEstimate}`,
     `- Optimized token estimate: ${result.tokenEstimate}`,
     `- Estimated savings: ${result.estimatedSavingsPercent}%`,
-    `- Removed stale/noisy items: ${(result.removedStaleConstraintsCount ?? 0) + (result.removedNoisyItemsCount ?? 0)}`,
-    `- Deduplicated items: ${result.deduplicatedItemsCount ?? 0}`
+    "- Compression level: standard"
   ].join("\n");
+};
+
+export const formatProjectHandoff = async (
+  result: OptimizedContextResponse,
+  detailLevel: DetailLevel = "standard",
+  compression: CompressionLevel = "aggressive"
+): Promise<string> => {
+  if (result.rawContext) {
+    return [
+      "# Context Vault Raw Project Context",
+      "Receiving AI: this is raw/unoptimized stored ProjectContext. Use it only when the user explicitly asks for raw context.",
+      "",
+      formatFullContext(result.rawContext)
+    ].join("\n");
+  }
+
+  if (compression === "standard") {
+    return formatStandardProjectHandoff(result, detailLevel);
+  }
+
+  const stats = newSemanticStats();
+  const aiBody = await tryAiSemanticCompaction(result, compression, stats);
+  if (aiBody) {
+    return appendSemanticTokenSummary(aiBody, result, compression);
+  }
+
+  const fallbackStats = newSemanticStats();
+  const body = buildSemanticHandoffBody(result, compression, fallbackStats);
+  return appendSemanticTokenSummary(body, result, compression);
 };

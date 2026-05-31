@@ -165,9 +165,9 @@ export function AppLayout() {
             <StatusBadge>Review-first</StatusBadge>
             {projectId && <StatusBadge tone={githubConnected ? "success" : "warning"}>{githubConnected ? "GitHub connected" : "GitHub not connected"}</StatusBadge>}
           </div>
-          <div className="userProfile" aria-label="Account">
+          <Link className="userProfile" to="/profile" aria-label="Open profile" title="Profile">
             <span>CV</span>
-          </div>
+          </Link>
         </div>
         <div className="pageEnter">
           <Outlet />

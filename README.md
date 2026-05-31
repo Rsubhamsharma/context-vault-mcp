@@ -124,7 +124,7 @@ http://localhost:5173
 6. Build the MCP server.
 7. Add the MCP server config to your AI client.
 8. Run `context_health_check` from the AI client.
-9. Run `context_load` or `context_smart` before project work.
+9. Run `context_load` or `context_smart` before project work. `context_load raw=false` defaults to aggressive semantic compression for a compact handoff.
 
 ## MCP Setup
 
@@ -150,6 +150,16 @@ CONTEXT_VAULT_PROJECT_ID=project_id
 ```
 
 Create `CONTEXT_VAULT_API_KEY` in the dashboard on the MCP setup page. The raw key is shown only once.
+
+Optional AI-assisted semantic compaction:
+
+```env
+CONTEXT_VAULT_COMPACTION_AI_PROVIDER=gemini
+CONTEXT_VAULT_COMPACTION_AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_optional_gemini_key
+```
+
+AI compaction is not required. If it is not configured, times out, or returns invalid JSON, the MCP server falls back to deterministic semantic compression.
 
 Recommended scopes:
 
@@ -196,7 +206,7 @@ env:
 Available tools include:
 
 - `context_health_check`: verify backend reachability, API key auth, and project access.
-- `context_load`: load the latest official project context.
+- `context_load`: load the latest official project context. `raw=false` defaults to `compression="aggressive"`; use `standard` for fuller output, `ultra` for very small context windows, or `raw=true` for the full uncompressed ProjectContext.
 - `context_smart`: load task-relevant project context.
 - `context_search`: search within the latest project context.
 - `context_versions`: list context versions.
@@ -225,6 +235,14 @@ Use Context Vault and run context_health_check.
 
 ```text
 Load the latest Context Vault project context before changing code.
+```
+
+```text
+Use Context Vault and call context_load with raw false and compression aggressive.
+```
+
+```text
+Use Context Vault and call context_load with raw false and compression ultra for a small context window.
 ```
 
 ```text

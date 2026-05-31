@@ -5,7 +5,7 @@ Standalone MCP server for Context Vault. It authenticates to the Context Vault b
 ## Tools
 
 - `context_health_check`: verify backend reachability, authentication, and project access.
-- `context_load`: load latest official ProjectContext.
+- `context_load`: load latest official ProjectContext. `raw=false` defaults to `compression="aggressive"` for a compact semantic handoff.
 - `context_load_version`: load a clearly labeled historical ContextVersion snapshot.
 - `context_smart`: return deterministic task-relevant context.
 - `context_search`: search latest ProjectContext.
@@ -31,6 +31,36 @@ CONTEXT_VAULT_PROJECT_ID=project_id
 ```
 
 Use a Context Vault MCP API key from the dashboard. Do not use a login JWT in AI tool configs.
+
+Optional AI-assisted semantic compaction:
+
+```env
+CONTEXT_VAULT_COMPACTION_AI_PROVIDER=gemini
+CONTEXT_VAULT_COMPACTION_AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_optional_gemini_key
+```
+
+If AI compaction is not configured or fails validation, the server falls back to deterministic semantic compression.
+
+## context_load Compression
+
+`context_load` accepts:
+
+- `raw`: set `true` to return full stored ProjectContext without optimized formatting.
+- `detailLevel`: `compact`, `standard`, or `detailed` for the standard handoff path.
+- `compression`: `standard`, `aggressive`, or `ultra`.
+
+Compression levels:
+
+- `standard`: fuller optimized handoff with more original section detail.
+- `aggressive`: default for `raw=false`; merges repeated source-of-truth, review-first, API key, GitHub, MCP, and versioning ideas into compact sections.
+- `ultra`: minimal useful handoff for small context windows.
+
+Example prompt:
+
+```text
+Use Context Vault and call context_load with raw false and compression aggressive.
+```
 
 ## Using With MCP Inspector
 

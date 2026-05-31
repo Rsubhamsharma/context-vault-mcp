@@ -236,7 +236,9 @@ function CollapsibleMcpPreview({ optimized }: { optimized: OptimizedContextResul
         <div><dt>Token estimate</dt><dd>{optimized.originalTokenEstimate} tokens</dd></div>
         <div><dt>Optimized estimate</dt><dd>{optimized.tokenEstimate} tokens</dd></div>
         <div><dt>Savings</dt><dd>{optimized.estimatedSavingsPercent}%</dd></div>
+        <div><dt>MCP default</dt><dd>context_load raw=false uses aggressive semantic compression.</dd></div>
       </dl>
+      <p>Preview shows the cleaned backend context. MCP clients can request standard, aggressive, or ultra handoff compression.</p>
       <pre>{previewText}</pre>
     </details>
   );

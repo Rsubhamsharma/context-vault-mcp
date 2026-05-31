@@ -211,7 +211,7 @@ function NextStepPanel() {
     <section className="apiNextStepPanel">
       <div>
         <h2>Next step</h2>
-        <p>After creating a key, copy your MCP config and test context_health_check.</p>
+        <p>After creating a key, copy your MCP config, test context_health_check, then load memory with context_load using aggressive compression.</p>
       </div>
       <Link className="ghostButton" to="../mcp">Open MCP Setup</Link>
     </section>
