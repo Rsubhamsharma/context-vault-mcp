@@ -316,10 +316,10 @@ function VersionEmptyState() {
   return (
     <section className="versionsEmptyState">
       <h2>No versions yet</h2>
-      <p>Versions are created when an approved suggestion changes official project memory.</p>
+      <p>Versions appear after the first meaningful ProjectContext update is applied.</p>
       <div>
-        <Link className="actionButton" to="../suggestions">View Suggestions</Link>
-        <Link className="ghostButton" to="../context">Create Manual Suggestion</Link>
+        <Link className="actionButton" to="../context">Go to Project Context</Link>
+        <Link className="ghostButton" to="../suggestions">Create manual suggestion</Link>
       </div>
     </section>
   );

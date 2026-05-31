@@ -2703,7 +2703,13 @@ select:focus {
 }
 
 select option {
-  background: #111827;
+  background: var(--card);
+  color: var(--text-primary);
+}
+
+select option:checked {
+  background: var(--secondary);
+  color: var(--text-primary);
 }
 
 code,
@@ -3871,6 +3877,12 @@ button,
   font-size: 11px;
 }
 
+.userProfile svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
 .pageEnter {
   animation: appPageEnter 260ms var(--ease-out);
 }
@@ -3980,7 +3992,7 @@ button,
 
 .actionButton:disabled {
   opacity: .62;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .ghostButton,
@@ -4144,6 +4156,14 @@ button,
   background: var(--border-subtle);
 }
 
+.projectActivityList {
+  max-height: 424px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
 .vault-item {
   min-height: 78px;
   display: grid;
@@ -4153,6 +4173,10 @@ button,
   padding: 14px 16px;
   background: rgba(7, 11, 18, 0.92);
   transition: background-color 170ms var(--ease-out), transform 170ms var(--ease-out);
+}
+
+.projectActivityItem {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .vault-item:hover {
@@ -4466,6 +4490,10 @@ textarea {
 
   .metricStrip {
     grid-template-columns: 1fr;
+  }
+
+  .projectActivityList {
+    max-height: 360px;
   }
 
   .surfacePanel,
@@ -10172,6 +10200,16 @@ textarea {
   line-height: 1.62;
 }
 
+.aiInstructionsSection header p,
+.aiInstructionsSection .contextKbList li p,
+.appShell .aiInstructionsSection header p,
+.appShell .aiInstructionsSection .contextKbList li p {
+  font-family: var(--font-sans);
+  font-size: 0.94rem;
+  font-weight: 400;
+  line-height: 1.62;
+}
+
 .memoryDetailsDisclosure,
 .contextMcpPreview {
   border-top: 1px solid rgba(148,163,184,0.11);
@@ -11258,9 +11296,7 @@ select,
 .appShell .versionPreviewGroups article,
 .appShell .versionFullSnapshot,
 .appShell .versionAllChanges,
-.appShell .versionsEmptyState,
 .appShell .apiKeysTableWrap,
-.appShell .apiNextStepPanel,
 .appShell .apiKeysEmptyState,
 .appShell .apiDialog,
 .appShell .githubStatusPanel,
@@ -11275,7 +11311,6 @@ select,
 .appShell .contextOverviewPanel,
 .appShell .contextKbSectionView,
 .appShell .contextKbEmptyState,
-.appShell .contextMcpPreview,
 .appShell .reviewDialog,
 .appShell .confirmDialog,
 .appShell .modal-content,
@@ -11452,7 +11487,6 @@ select,
 .appShell .mcpConfigBlock pre,
 .appShell .docsCodeBlock pre,
 .appShell .versionFullSnapshot pre,
-.appShell .contextMcpPreview pre,
 .appShell .apiRawKeyField,
 .appShell .apiRawKeyField code,
 .appShell .mcpKeyWarning,
@@ -11461,6 +11495,18 @@ select,
   border-color: var(--border-subtle);
   background: color-mix(in oklch, var(--muted) 66%, white);
   color: var(--text-secondary);
+}
+
+.appShell .contextMcpPreview {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.appShell .contextMcpPreview pre {
+  border-color: color-mix(in oklch, var(--border) 70%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 .appShell input,
@@ -11526,7 +11572,6 @@ select,
 .appShell .reviewPatchDetails,
 .appShell .reviewPatchDetails section,
 .appShell .apiKeysTableWrap,
-.appShell .apiNextStepPanel,
 .appShell .apiKeysEmptyState {
   border-color: color-mix(in oklch, var(--border) 78%, transparent);
   background: var(--card);
@@ -11542,7 +11587,6 @@ select,
 .appShell .manualCapturePanel,
 .appShell .reviewQueuePanel,
 .appShell .apiKeysTableWrap,
-.appShell .apiNextStepPanel,
 .appShell .docsCodeBlock,
 .appShell .docsCallout {
   border-radius: var(--radius-lg);
@@ -11894,7 +11938,6 @@ select,
   .appShell .manualCapturePanel,
   .appShell .reviewQueuePanel,
   .appShell .apiKeysTableWrap,
-  .appShell .apiNextStepPanel,
   .appShell .docsCodeBlock,
   .appShell .docsCallout {
     border-radius: var(--radius-md);

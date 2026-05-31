@@ -12,3 +12,8 @@ projectRoutes.get(
   authenticateJwtOrApiKey(["context:read"]),
   asyncHandler(projectController.getProject)
 );
+projectRoutes.delete(
+  "/:projectId",
+  requireAuth,
+  asyncHandler(projectController.deleteProject)
+);

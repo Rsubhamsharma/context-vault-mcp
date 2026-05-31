@@ -1,4 +1,5 @@
 import type { ProjectContext } from "@prisma/client";
+import { projectContextNormalizerService } from "./projectContextNormalizer.service";
 
 type OptimizerMode = "full-clean" | "smart-task";
 
@@ -156,66 +157,18 @@ const savingsPercent = (original: number, optimized: number): number => {
 };
 
 const buildCleanContext = (projectContext: ProjectContext): CleanResult => {
-  let deduplicatedItemsCount = 0;
-  let removedNoisyItemsCount = 0;
-
-  const rawFeatures = toItems(projectContext.features);
-  const dedupedFeatures = dedupe(rawFeatures);
-  deduplicatedItemsCount += dedupeCount(rawFeatures, dedupedFeatures);
-  const features = removeGenericFeatures(dedupedFeatures);
-  removedNoisyItemsCount += dedupeCount(dedupedFeatures, features);
-
-  const rawArchitectureNotes = toItems(projectContext.architectureNotes);
-  const architectureNotes = dedupe(rawArchitectureNotes);
-  deduplicatedItemsCount += dedupeCount(rawArchitectureNotes, architectureNotes);
-
-  const rawTechStack = toItems(projectContext.techStack);
-  const techStack = dedupe(rawTechStack);
-  deduplicatedItemsCount += dedupeCount(rawTechStack, techStack);
-
-  const rawDecisions = toItems(projectContext.decisions);
-  const decisions = dedupe(rawDecisions);
-  deduplicatedItemsCount += dedupeCount(rawDecisions, decisions);
-
-  const rawConstraints = toItems(projectContext.constraints);
-  const dedupedConstraints = dedupe(rawConstraints);
-  deduplicatedItemsCount += dedupeCount(rawConstraints, dedupedConstraints);
-  const contextSignals = [...features, ...architectureNotes, ...techStack];
-  const constraints = filterStaleConstraints(dedupedConstraints, contextSignals);
-  const removedStaleConstraintsCount = dedupeCount(dedupedConstraints, constraints);
-
-  const rawIssues = toItems(projectContext.issues);
-  const issues = dedupe(rawIssues);
-  deduplicatedItemsCount += dedupeCount(rawIssues, issues);
-
-  const rawDependencies = toItems(projectContext.dependencies);
-  const dependencies = dedupe(rawDependencies);
-  deduplicatedItemsCount += dedupeCount(rawDependencies, dependencies);
-
-  const rawNextSteps = toItems(projectContext.nextSteps);
-  const dedupedNextSteps = dedupe(rawNextSteps);
-  deduplicatedItemsCount += dedupeCount(rawNextSteps, dedupedNextSteps);
-  const withoutNoisyNextSteps = removeNoisyNextSteps(dedupedNextSteps);
-  removedNoisyItemsCount += dedupeCount(dedupedNextSteps, withoutNoisyNextSteps);
-
-  const nextSteps = removeOutdatedNextSteps(withoutNoisyNextSteps, features);
-  removedNoisyItemsCount += dedupeCount(withoutNoisyNextSteps, nextSteps);
+  const rawItems = arrayFields.flatMap((field) => toItems(projectContext[field]));
+  const normalized = projectContextNormalizerService.normalizeProjectContext(projectContext);
+  const normalizedItems = arrayFields.flatMap((field) => normalized[field]);
+  const deduplicatedItemsCount = Math.max(0, rawItems.length - dedupe(rawItems).length);
+  const removedNoisyItemsCount = Math.max(0, rawItems.length - normalizedItems.length - deduplicatedItemsCount);
 
   return {
     context: {
-      goal: projectContext.goal.trim(),
-      techStack,
-      features,
-      decisions,
-      constraints,
-      issues,
-      dependencies,
-      nextSteps,
-      architectureNotes,
-      aiInstructions: projectContext.aiInstructions.trim(),
+      ...normalized,
       currentVersionNumber: projectContext.currentVersionNumber
     },
-    removedStaleConstraintsCount,
+    removedStaleConstraintsCount: 0,
     deduplicatedItemsCount,
     removedNoisyItemsCount
   };

@@ -10,6 +10,7 @@ import { DocsPage } from "./pages/DocsPage";
 import { GitHubPage } from "./pages/GitHubPage";
 import { LandingPage } from "./pages/LandingPage";
 import { McpPage } from "./pages/McpPage";
+import { ProjectDashboardPage } from "./pages/ProjectDashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { SuggestionsPage } from "./pages/SuggestionsPage";
@@ -119,6 +120,7 @@ createRoot(document.getElementById("root")!).render(
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId/dashboard" element={<ProjectDashboardPage />} />
           <Route path="/projects/:projectId/context" element={<ContextPage />} />
           <Route path="/projects/:projectId/github" element={<GitHubPage />} />
           <Route path="/projects/:projectId/suggestions" element={<SuggestionsPage />} />

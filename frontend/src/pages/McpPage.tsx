@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { API_URL, api, ApiKey, ProjectContext } from "../api/client";
+import { API_URL, ApiRequestError, api, ApiKey, ProjectContext } from "../api/client";
 import { ErrorBox } from "../components/State";
 
 const setupItems = [
@@ -80,6 +80,20 @@ const troubleshooting = [
   ["Wrong project loaded", "The project ID belongs to a different vault.", "Replace CONTEXT_VAULT_PROJECT_ID with the current project ID."]
 ];
 
+function isContextNotInitializedError(error: unknown) {
+  return error instanceof ApiRequestError &&
+    error.status === 404 &&
+    error.message.toLowerCase().includes("project context is not initialized");
+}
+
+function safeProjectSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "project";
+}
+
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -156,13 +170,14 @@ function McpSetupSteps() {
   );
 }
 
-function McpConfigBlock({ snippet, hasApiKey }: { snippet: string; hasApiKey: boolean }) {
+function McpConfigBlock({ snippet, hasApiKey, serverName }: { snippet: string; hasApiKey: boolean; serverName: string }) {
   return (
     <section className="mcpConfigBlock" aria-labelledby="mcp-config-title">
       <header>
         <div>
           <h2 id="mcp-config-title">MCP config</h2>
-          <p>Add this server configuration to your AI tool.</p>
+          <p>Add this project-specific server configuration to your AI tool.</p>
+          <p>Server name: <code>{serverName}</code></p>
         </div>
         <CopyButton value={snippet} label="Copy config" />
       </header>
@@ -174,6 +189,14 @@ function McpConfigBlock({ snippet, hasApiKey }: { snippet: string; hasApiKey: bo
         </div>
       )}
       <pre><code>{snippet}</code></pre>
+    </section>
+  );
+}
+
+function MultiVaultGuide({ serverName }: { serverName: string }) {
+  return (
+    <section className="mcpSecurityNote">
+      <p>This MCP config connects your AI tool to the current vault only. For multiple vaults, copy one config entry per project and keep each server key unique, such as <code>{serverName}</code>.</p>
     </section>
   );
 }
@@ -285,6 +308,7 @@ export function McpPage() {
   const { projectId = "" } = useParams();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [context, setContext] = useState<ProjectContext | null>(null);
+  const [projectName, setProjectName] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -292,13 +316,24 @@ export function McpPage() {
     async function load() {
       setError("");
       try {
-        const [keyResult, contextResult] = await Promise.all([
+        const [keyResult, projectsResult] = await Promise.all([
           api.apiKeys(),
-          api.context(projectId)
+          api.projects()
         ]);
         if (cancelled) return;
         setKeys(keyResult.apiKeys.filter((key) => !key.revokedAt));
-        setContext(contextResult.context);
+        setProjectName(projectsResult.projects.find((project) => project.id === projectId)?.name ?? projectId);
+
+        try {
+          const contextResult = await api.context(projectId);
+          if (!cancelled) setContext(contextResult.context);
+        } catch (err) {
+          if (!cancelled && isContextNotInitializedError(err)) {
+            setContext(null);
+          } else if (!cancelled) {
+            throw err;
+          }
+        }
       } catch {
         if (!cancelled) setError("Could not load MCP setup status. Check backend status and try again.");
       }
@@ -310,9 +345,10 @@ export function McpPage() {
   }, [projectId]);
 
   const activeKeys = keys.filter((key) => !key.revokedAt);
+  const serverName = `context-vault-${safeProjectSlug(projectName || projectId)}`;
   const snippet = useMemo(() => JSON.stringify({
     mcpServers: {
-      "context-vault": {
+      [serverName]: {
         command: "node",
         args: ["path/to/context-vault-mcp/build/index.js"],
         env: {
@@ -322,7 +358,7 @@ export function McpPage() {
         }
       }
     }
-  }, null, 2), [projectId]);
+  }, null, 2), [projectId, serverName]);
 
   return (
     <section className="mcpSetupPage">
@@ -331,8 +367,9 @@ export function McpPage() {
       <McpSetupChecklist hasContext={Boolean(context)} hasApiKey={activeKeys.length > 0} />
       <div className="mcpSetupGrid">
         <McpSetupSteps />
-        <McpConfigBlock snippet={snippet} hasApiKey={activeKeys.length > 0} />
+        <McpConfigBlock snippet={snippet} hasApiKey={activeKeys.length > 0} serverName={serverName} />
       </div>
+      <MultiVaultGuide serverName={serverName} />
       <AiToolSetupTabs />
       <CompressionGuide />
       <ExamplePromptList />

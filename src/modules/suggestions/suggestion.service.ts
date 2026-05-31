@@ -3,9 +3,24 @@ import { prisma } from "../../db/prisma";
 import { ApiError } from "../../utils/ApiError";
 import { contextPatchSchema } from "../context/context.schemas";
 import { contextService } from "../context/context.service";
+import { projectContextNormalizerService } from "../context/projectContextNormalizer.service";
 import { versionMetadataService } from "../context/versionMetadata.service";
 import { projectService } from "../projects/project.service";
 import type { ApplySuggestionInput, CreateSuggestionInput } from "./suggestion.schemas";
+
+const hasNormalizedContent = (value: ReturnType<typeof projectContextNormalizerService.normalize>): boolean =>
+  Boolean(
+    value.goal ||
+    value.aiInstructions ||
+    value.techStack.length ||
+    value.features.length ||
+    value.decisions.length ||
+    value.constraints.length ||
+    value.issues.length ||
+    value.dependencies.length ||
+    value.nextSteps.length ||
+    value.architectureNotes.length
+  );
 
 export const suggestionService = {
   async createSuggestion(userId: string, projectId: string, input: CreateSuggestionInput) {
@@ -91,12 +106,87 @@ export const suggestionService = {
         throw new ApiError(409, "Suggestion is no longer pending.");
       }
 
+      const patch = contextPatchSchema.parse(suggestion.suggestedPatch);
       const existingContext = await tx.projectContext.findUnique({ where: { projectId } });
       if (!existingContext) {
-        throw new ApiError(404, "Project context is not initialized");
+        const normalizedPatch = projectContextNormalizerService.normalize(patch);
+        if (!hasNormalizedContent(normalizedPatch)) {
+          const updatedSuggestion = await tx.contextSuggestion.findUnique({
+            where: { id: suggestionId }
+          });
+
+          return {
+            status: "no_changes",
+            message: "Suggestion did not contain durable ProjectContext content after cleanup.",
+            suggestionId,
+            versionCreated: false,
+            suggestion: updatedSuggestion
+          };
+        }
+
+        const context = await tx.projectContext.create({
+          data: {
+            projectId,
+            goal: normalizedPatch.goal,
+            techStack: normalizedPatch.techStack,
+            features: normalizedPatch.features,
+            decisions: normalizedPatch.decisions,
+            constraints: normalizedPatch.constraints,
+            issues: normalizedPatch.issues,
+            dependencies: normalizedPatch.dependencies,
+            nextSteps: normalizedPatch.nextSteps,
+            architectureNotes: normalizedPatch.architectureNotes,
+            aiInstructions: normalizedPatch.aiInstructions,
+            currentVersionNumber: 1
+          }
+        });
+        const previousContext = {
+          ...context,
+          goal: "",
+          techStack: [],
+          features: [],
+          decisions: [],
+          constraints: [],
+          issues: [],
+          dependencies: [],
+          nextSteps: [],
+          architectureNotes: [],
+          aiInstructions: "",
+          currentVersionNumber: 0
+        };
+        const metadata = versionMetadataService.generateVersionMetadata({
+          source: VersionSource.suggestion,
+          patch: normalizedPatch,
+          previousContext,
+          nextContext: context,
+          suggestionTitle: suggestion.title,
+          summaryHint: input.changeSummary
+        });
+        const version = await tx.contextVersion.create({
+          data: {
+            projectId,
+            versionNumber: 1,
+            snapshot: contextService.toSnapshot(context),
+            versionTitle: metadata.versionTitle,
+            changeSummary: metadata.changeSummary,
+            changedSections: versionMetadataService.asJson(metadata.changedSections),
+            changePreview: versionMetadataService.asJson(metadata.changePreview),
+            source: VersionSource.suggestion
+          }
+        });
+        const updatedSuggestion = await tx.contextSuggestion.findUnique({
+          where: { id: suggestionId }
+        });
+
+        return {
+          status: "applied",
+          versionCreated: true,
+          context,
+          version,
+          suggestion: updatedSuggestion
+        };
       }
 
-      const patch = contextPatchSchema.parse(suggestion.suggestedPatch);
       const mergedData = contextService.buildMergedContextData(existingContext, patch, input.mergeMode);
       const nextVersionNumber = existingContext.currentVersionNumber + 1;
       const candidateContext = {

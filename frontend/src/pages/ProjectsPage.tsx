@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, Project } from "../api/client";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { TrashIcon } from "../components/Icons";
 import { ErrorBox, Loading } from "../components/State";
 import { formatDate } from "../utils";
 
@@ -88,8 +90,8 @@ function CreateVaultDialog({ isOpen, onClose, onCreate }: { isOpen: boolean; onC
 }
 
 function MetricStrip({ projects }: { projects: Project[] }) {
-  const latestVersion = Math.max(0, ...projects.map((project) => project.context?.currentVersionNumber ?? 0));
-  const latestUpdate = projects
+  const projectsWithMemory = projects.filter((project) => (project.context?.currentVersionNumber ?? 0) > 0);
+  const latestUpdate = projectsWithMemory
     .map((project) => project.context?.updatedAt)
     .filter(Boolean)
     .sort()
@@ -98,9 +100,9 @@ function MetricStrip({ projects }: { projects: Project[] }) {
 
   const metrics = [
     ["Total vaults", String(projects.length)],
-    ["Latest version", latestVersion ? `v${latestVersion}` : "-"],
-    ["Last memory sync", latestUpdate ? formatDate(latestUpdate) : "Not synced"],
-    ["Active repositories", String(repositoryCount)]
+    ["Vaults with memory", projectsWithMemory.length ? String(projectsWithMemory.length) : "None yet"],
+    ["Connected repositories", repositoryCount ? String(repositoryCount) : "None yet"],
+    ["Last memory sync", latestUpdate ? formatDate(latestUpdate) : "Never"]
   ];
 
   return (
@@ -115,7 +117,18 @@ function MetricStrip({ projects }: { projects: Project[] }) {
   );
 }
 
-function ProjectListItem({ project }: { project: Project }) {
+function ProjectListItem({
+  project,
+  deletingId,
+  onDelete
+}: {
+  project: Project;
+  deletingId: string;
+  onDelete: (project: Project) => void;
+}) {
+  const hasMemory = (project.context?.currentVersionNumber ?? 0) > 0;
+  const isDeleting = deletingId === project.id;
+
   return (
     <article className="vault-item">
       <Link className="vault-item-main" to={`/projects/${project.id}/context`}>
@@ -123,18 +136,28 @@ function ProjectListItem({ project }: { project: Project }) {
         <span className="vault-item-desc">{project.description || "No description provided."}</span>
       </Link>
       <div className="vault-item-meta">
-        <span className="versionBadge">v{project.context?.currentVersionNumber ?? 0}</span>
+        {hasMemory ? <span className="versionBadge">v{project.context?.currentVersionNumber}</span> : <span>No memory yet</span>}
       </div>
       <div className="vault-item-meta">
-        <span>{project.context?.updatedAt ? formatDate(project.context.updatedAt) : "Never synced"}</span>
+        <span>{hasMemory && project.context?.updatedAt ? formatDate(project.context.updatedAt) : "Never synced"}</span>
       </div>
       <div className="vault-status-chips">
-        <StatusChip tone="ready">Memory ready</StatusChip>
+        <StatusChip tone={hasMemory ? "ready" : "warning"}>{hasMemory ? "Memory ready" : "Needs setup"}</StatusChip>
         <StatusChip tone={project.repoUrl ? "ready" : "warning"}>{project.repoUrl ? "GitHub connected" : "Not connected"}</StatusChip>
-        <StatusChip tone={(project.context?.currentVersionNumber ?? 0) > 0 ? "ready" : "warning"}>{(project.context?.currentVersionNumber ?? 0) > 0 ? "MCP ready" : "Needs key"}</StatusChip>
+        <StatusChip tone={hasMemory ? "ready" : "warning"}>{hasMemory ? "MCP ready" : "No context yet"}</StatusChip>
       </div>
-      <div className="vault-item-action">
+      <div className="vault-item-action reviewItemActions">
         <Link className="openVaultButton" to={`/projects/${project.id}/context`}>Open</Link>
+        <button
+          className="iconDeleteButton"
+          disabled={isDeleting}
+          onClick={() => onDelete(project)}
+          type="button"
+          aria-label={`Delete project ${project.name}`}
+          title="Delete project"
+        >
+          <TrashIcon />
+        </button>
       </div>
     </article>
   );
@@ -147,6 +170,8 @@ export function ProjectsPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [confirmProject, setConfirmProject] = useState<Project | null>(null);
+  const [deletingId, setDeletingId] = useState("");
 
   async function load() {
     setLoading(true);
@@ -175,6 +200,26 @@ export function ProjectsPage() {
   function handleCreated(project?: Project) {
     void load();
     if (project) navigate(`/projects/${project.id}/context`);
+  }
+
+  async function deleteProject(project: Project) {
+    if (deletingId) return;
+    setError("");
+    setDeletingId(project.id);
+    try {
+      await api.deleteProject(project.id);
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete project. Check backend status and try again.");
+    } finally {
+      setDeletingId("");
+    }
+  }
+
+  function confirmProjectDelete() {
+    const project = confirmProject;
+    setConfirmProject(null);
+    if (project) void deleteProject(project);
   }
 
   return (
@@ -223,7 +268,14 @@ export function ProjectsPage() {
           </div>
         ) : (
           <div className="vault-list">
-            {filteredProjects.map((project) => <ProjectListItem key={project.id} project={project} />)}
+            {filteredProjects.map((project) => (
+              <ProjectListItem
+                key={project.id}
+                project={project}
+                deletingId={deletingId}
+                onDelete={setConfirmProject}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -232,6 +284,19 @@ export function ProjectsPage() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onCreate={handleCreated}
+      />
+      <ConfirmDialog
+        open={Boolean(confirmProject)}
+        title="Delete project?"
+        description={
+          confirmProject
+            ? `This permanently deletes "${confirmProject.name}" and its project context, suggestions, versions, and GitHub activity. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete project"
+        intent="danger"
+        onCancel={() => setConfirmProject(null)}
+        onConfirm={confirmProjectDelete}
       />
     </section>
   );

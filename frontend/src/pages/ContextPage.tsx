@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, OptimizedContextResult, ProjectContext } from "../api/client";
+import { ApiRequestError, api, OptimizedContextResult, ProjectContext } from "../api/client";
 import { ErrorBox } from "../components/State";
 import { asList, formatDate } from "../utils";
 
@@ -206,9 +206,10 @@ function ContextSectionContent({
 }) {
   const items = asList(section.value);
   const isOverview = section.id === "overview";
+  const isAiInstructions = section.id === "ai-instructions";
 
   return (
-    <article className="contextSectionContent" id={section.id}>
+    <article className={`contextSectionContent${isAiInstructions ? " aiInstructionsSection" : ""}`} id={section.id}>
       <header>
         <div>
           <h2>{section.title}</h2>
@@ -244,15 +245,28 @@ function CollapsibleMcpPreview({ optimized }: { optimized: OptimizedContextResul
   );
 }
 
+function isContextNotInitializedError(error: unknown) {
+  return error instanceof ApiRequestError &&
+    error.status === 404 &&
+    error.message.toLowerCase().includes("project context is not initialized");
+}
+
 function ContextEmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <section className="contextKbEmptyState">
-      <h2>No project context yet</h2>
-      <p>Initialize this vault with goals, decisions, constraints, and next steps so AI tools can continue from the same memory.</p>
+      <h2>Start this vault's memory</h2>
+      <p>This vault does not have project context yet. Nothing is broken. Add the first memory update so connected AI tools can understand the project.</p>
+      <p>Choose one setup path below. Review-first flows create a pending suggestion first; applying it creates the official ProjectContext and first version.</p>
+      <p><strong>Initialize from dashboard:</strong> Add the project goal, product summary, and architecture notes manually.</p>
+      <p><strong>Create manual suggestion:</strong> Paste project notes, a git summary, release note, or session summary, then review and apply it.</p>
+      <p><strong>Connect GitHub:</strong> Connect a repository so commits and pull requests can create reviewable memory suggestions.</p>
+      <p><strong>Use MCP capture:</strong> Let an AI tool create a pending suggestion through context_capture or context_create_suggestion.</p>
+      <p>After initialization, context_load will return useful project memory for this vault.</p>
       <div>
-        <button className="actionButton" onClick={onCreate}>Initialize Context</button>
-        <button className="ghostButton" onClick={onCreate}>New Suggestion</button>
-        <Link className="ghostButton" to="../docs">View Docs</Link>
+        <button className="actionButton" onClick={onCreate}>Initialize from dashboard</button>
+        <button className="ghostButton" onClick={onCreate}>Create manual suggestion</button>
+        <Link className="ghostButton" to="../github">Connect GitHub</Link>
+        <Link className="ghostButton" to="../mcp">Use MCP capture</Link>
       </div>
     </section>
   );
@@ -401,8 +415,14 @@ export function ContextPage() {
       ]);
       setContext(contextResult.context);
       setOptimized(optimizedResult);
-    } catch {
-      setError("Could not load project context. Check backend status and try again.");
+    } catch (err) {
+      if (isContextNotInitializedError(err)) {
+        setContext(null);
+        setOptimized(null);
+        setError("");
+      } else {
+        setError("Could not load project context. Check backend status and try again.");
+      }
     } finally {
       setLoading(false);
     }

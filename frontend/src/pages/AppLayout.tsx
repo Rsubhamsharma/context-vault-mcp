@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import { api, authStore } from "../api/client";
+import { api, authStore, User } from "../api/client";
+import { getUserInitials } from "../utils";
 
 type NavItem = {
   suffix?: string;
@@ -20,8 +21,9 @@ function ShellLogo() {
 
 function SidebarNav({ projectId, onNavigate }: { projectId?: string; onNavigate?: () => void }) {
   const mainLinks: NavItem[] = [
-    { to: "/projects", label: "Dashboard", icon: "D", end: true },
+    { to: "/projects", label: "Projects", icon: "P", end: true },
     ...(projectId ? [
+      { suffix: "/dashboard", label: "Dashboard", icon: "D" },
       { suffix: "/context", label: "Project Context", icon: "C" },
       { suffix: "/suggestions", label: "Suggestions", icon: "S" },
       { suffix: "/versions", label: "Versions", icon: "V" },
@@ -63,12 +65,21 @@ function StatusBadge({ children, tone = "default" }: { children: React.ReactNode
   return <span className={`appStatusBadge ${tone}`}>{children}</span>;
 }
 
+function UserFallbackIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="M10 10.2a3.8 3.8 0 1 0 0-7.6 3.8 3.8 0 0 0 0 7.6Zm0 1.5c-3.2 0-5.8 1.8-5.8 4v.9h11.6v-.9c0-2.2-2.6-4-5.8-4Z" />
+    </svg>
+  );
+}
+
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { projectId } = useParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -107,10 +118,27 @@ export function AppLayout() {
     };
   }, [projectId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void api.me()
+      .then((result) => {
+        if (!cancelled) setUser(result.user);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function logout() {
     authStore.clear();
     navigate("/login");
   }
+
+  const initials = getUserInitials(user);
 
   return (
     <div className="app appShell">
@@ -166,7 +194,7 @@ export function AppLayout() {
             {projectId && <StatusBadge tone={githubConnected ? "success" : "warning"}>{githubConnected ? "GitHub connected" : "GitHub not connected"}</StatusBadge>}
           </div>
           <Link className="userProfile" to="/profile" aria-label="Open profile" title="Profile">
-            <span>CV</span>
+            <span>{initials || <UserFallbackIcon />}</span>
           </Link>
         </div>
         <div className="pageEnter">

@@ -186,6 +186,8 @@ export const api = {
   projects: () => request<{ projects: Project[] }>("/api/projects"),
   createProject: (body: { name: string; description?: string; repoUrl?: string; defaultBranch?: string }) =>
     request<{ project: Project }>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
+  deleteProject: (projectId: string) =>
+    request<{ success: boolean }>(`/api/projects/${projectId}`, { method: "DELETE" }),
   context: (projectId: string) => request<{ context: ProjectContext }>(`/api/projects/${projectId}/context?rebuild=true`),
   optimizedContext: (projectId: string) =>
     request<OptimizedContextResult>(`/api/projects/${projectId}/context/optimized?mode=full-clean`),

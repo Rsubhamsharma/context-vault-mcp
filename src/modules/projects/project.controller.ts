@@ -29,5 +29,12 @@ export const projectController = {
     const { projectId } = projectIdParamsSchema.parse(req.params);
     const project = await projectService.getProject(userId, projectId);
     res.json({ project });
+  },
+
+  async deleteProject(req: Request, res: Response): Promise<void> {
+    const userId = getUserId(req);
+    const { projectId } = projectIdParamsSchema.parse(req.params);
+    const result = await projectService.deleteProject(userId, projectId);
+    res.json(result);
   }
 };

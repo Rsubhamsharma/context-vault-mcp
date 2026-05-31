@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, Suggestion } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { TrashIcon } from "../components/Icons";
 import { ErrorBox } from "../components/State";
 import { asList, formatDate } from "../utils";
 
@@ -75,14 +76,6 @@ function patchSearchText(item: Suggestion) {
 
 function ReviewBadge({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "success" | "warning" | "danger" | "accent" }) {
   return <span className={`reviewBadge ${tone}`}>{children}</span>;
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <path d="M7.5 3.5h5l.7 1.4H16v1.4H4V4.9h2.8l.7-1.4Zm-1.8 4h8.6l-.5 8.1c-.1 1-.8 1.7-1.8 1.7H8c-1 0-1.7-.7-1.8-1.7l-.5-8.1Zm2.2 1.6.3 6.1h1.2l-.2-6.1H7.9Zm2.9 0-.2 6.1h1.2l.3-6.1h-1.3Z" />
-    </svg>
-  );
 }
 
 function SuggestionsPageHeader({

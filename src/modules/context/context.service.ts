@@ -12,6 +12,7 @@ import type {
 } from "./context.schemas";
 import { contextOptimizerService } from "./contextOptimizer.service";
 import { manualContextAnalysisService } from "./manualContextAnalysis.service";
+import { projectContextNormalizerService } from "./projectContextNormalizer.service";
 import { versionMetadataService } from "./versionMetadata.service";
 
 type ContextSnapshot = {
@@ -135,7 +136,20 @@ const buildMergedContextData = (
       : mergeStringArrays(contextValue(existing, field), patch[field]);
   }
 
-  return data;
+  const candidate = {
+    goal: data.goal ?? existing.goal,
+    techStack: data.techStack ?? existing.techStack,
+    features: data.features ?? existing.features,
+    decisions: data.decisions ?? existing.decisions,
+    constraints: data.constraints ?? existing.constraints,
+    issues: data.issues ?? existing.issues,
+    dependencies: data.dependencies ?? existing.dependencies,
+    nextSteps: data.nextSteps ?? existing.nextSteps,
+    architectureNotes: data.architectureNotes ?? existing.architectureNotes,
+    aiInstructions: data.aiInstructions ?? existing.aiInstructions
+  };
+
+  return projectContextNormalizerService.asUpdateInput(projectContextNormalizerService.normalize(candidate));
 };
 
 const snapshotToPatch = (snapshot: Prisma.JsonValue): ContextPatchInput => {
@@ -161,10 +175,6 @@ const snapshotToPatch = (snapshot: Prisma.JsonValue): ContextPatchInput => {
   }
 
   return patch as ContextPatchInput;
-};
-
-const jsonInput = (value: Prisma.JsonValue): Prisma.InputJsonValue => {
-  return value as Prisma.InputJsonValue;
 };
 
 const emptyJsonArray = (): Prisma.JsonValue => [];
@@ -242,26 +252,27 @@ export const contextService = {
     }
 
     return prisma.$transaction(async (tx) => {
+      const normalizedInput = projectContextNormalizerService.normalize(input);
       const context = await tx.projectContext.create({
         data: {
           projectId,
-          goal: input.goal,
-          techStack: input.techStack,
-          features: input.features,
-          decisions: input.decisions,
-          constraints: input.constraints,
-          issues: input.issues,
-          dependencies: input.dependencies,
-          nextSteps: input.nextSteps,
-          architectureNotes: input.architectureNotes,
-          aiInstructions: input.aiInstructions,
+          goal: normalizedInput.goal,
+          techStack: normalizedInput.techStack,
+          features: normalizedInput.features,
+          decisions: normalizedInput.decisions,
+          constraints: normalizedInput.constraints,
+          issues: normalizedInput.issues,
+          dependencies: normalizedInput.dependencies,
+          nextSteps: normalizedInput.nextSteps,
+          architectureNotes: normalizedInput.architectureNotes,
+          aiInstructions: normalizedInput.aiInstructions,
           currentVersionNumber: 1
         }
       });
 
       const metadata = versionMetadataService.generateVersionMetadata({
         source: VersionSource.manual,
-        patch: input,
+        patch: normalizedInput,
         previousContext: emptyContextFrom(context),
         nextContext: context,
         summaryHint: input.changeSummary
@@ -369,22 +380,23 @@ export const contextService = {
       throw new ApiError(404, "Project context is not initialized");
     }
 
+    const normalizedRebuilt = projectContextNormalizerService.normalizeProjectContext(rebuilt);
     const nextVersionNumber = existing.currentVersionNumber + 1;
 
     return prisma.$transaction(async (tx) => {
       const context = await tx.projectContext.update({
         where: { projectId },
         data: {
-          goal: rebuilt.goal,
-          techStack: jsonInput(rebuilt.techStack),
-          features: jsonInput(rebuilt.features),
-          decisions: jsonInput(rebuilt.decisions),
-          constraints: jsonInput(rebuilt.constraints),
-          issues: jsonInput(rebuilt.issues),
-          dependencies: jsonInput(rebuilt.dependencies),
-          nextSteps: jsonInput(rebuilt.nextSteps),
-          architectureNotes: jsonInput(rebuilt.architectureNotes),
-          aiInstructions: rebuilt.aiInstructions,
+          goal: normalizedRebuilt.goal,
+          techStack: normalizedRebuilt.techStack,
+          features: normalizedRebuilt.features,
+          decisions: normalizedRebuilt.decisions,
+          constraints: normalizedRebuilt.constraints,
+          issues: normalizedRebuilt.issues,
+          dependencies: normalizedRebuilt.dependencies,
+          nextSteps: normalizedRebuilt.nextSteps,
+          architectureNotes: normalizedRebuilt.architectureNotes,
+          aiInstructions: normalizedRebuilt.aiInstructions,
           currentVersionNumber: nextVersionNumber
         }
       });
@@ -436,34 +448,35 @@ export const contextService = {
     const nextVersionNumber = existing.currentVersionNumber + 1;
 
     return prisma.$transaction(async (tx) => {
+      const normalizedInput = projectContextNormalizerService.normalize(input);
       const context = await tx.projectContext.update({
         where: { projectId },
         data: {
-          goal: input.goal,
-          techStack: normalizeStringArray(input.techStack),
-          features: normalizeStringArray(input.features),
-          decisions: normalizeStringArray(input.decisions),
-          constraints: normalizeStringArray(input.constraints),
-          issues: normalizeStringArray(input.issues),
-          dependencies: normalizeStringArray(input.dependencies),
-          nextSteps: normalizeStringArray(input.nextSteps),
-          architectureNotes: normalizeStringArray(input.architectureNotes),
-          aiInstructions: input.aiInstructions,
+          goal: normalizedInput.goal,
+          techStack: normalizedInput.techStack,
+          features: normalizedInput.features,
+          decisions: normalizedInput.decisions,
+          constraints: normalizedInput.constraints,
+          issues: normalizedInput.issues,
+          dependencies: normalizedInput.dependencies,
+          nextSteps: normalizedInput.nextSteps,
+          architectureNotes: normalizedInput.architectureNotes,
+          aiInstructions: normalizedInput.aiInstructions,
           currentVersionNumber: nextVersionNumber
         }
       });
 
       const replacementPatch: ContextPatchInput = {
-        goal: input.goal,
-        techStack: input.techStack,
-        features: input.features,
-        decisions: input.decisions,
-        constraints: input.constraints,
-        issues: input.issues,
-        dependencies: input.dependencies,
-        nextSteps: input.nextSteps,
-        architectureNotes: input.architectureNotes,
-        aiInstructions: input.aiInstructions
+        goal: normalizedInput.goal,
+        techStack: normalizedInput.techStack,
+        features: normalizedInput.features,
+        decisions: normalizedInput.decisions,
+        constraints: normalizedInput.constraints,
+        issues: normalizedInput.issues,
+        dependencies: normalizedInput.dependencies,
+        nextSteps: normalizedInput.nextSteps,
+        architectureNotes: normalizedInput.architectureNotes,
+        aiInstructions: normalizedInput.aiInstructions
       };
       const metadata = versionMetadataService.generateVersionMetadata({
         source: VersionSource.cleanup,
@@ -512,8 +525,12 @@ export const contextService = {
   async createCleanupSuggestion(userId: string, projectId: string) {
     await projectService.assertProjectOwner(userId, projectId);
     const context = await this.getContext(userId, projectId, { rebuild: true });
+    const normalized = await projectContextNormalizerService.normalizeWithAiFallback(context);
     const optimized = contextOptimizerService.optimizeProjectContext({
-      projectContext: context,
+      projectContext: {
+        ...context,
+        ...normalized.context
+      },
       mode: "full-clean"
     });
 
@@ -523,7 +540,11 @@ export const contextService = {
         title: "Cleanup optimized ProjectContext",
         source: SuggestionSource.cleanup,
         suggestedPatch: optimized.optimizedContext,
-        reasoningSummary: optimized.optimizationSummary,
+        reasoningSummary: [
+          optimized.optimizationSummary,
+          normalized.usedAi ? "AI-assisted cleanup was validated and normalized." : `Deterministic cleanup used${normalized.fallbackReason ? ` after AI fallback: ${normalized.fallbackReason}` : ""}.`,
+          `Cleanup preview: removed ${normalized.metrics.removedDuplicates} duplicate(s), merged ${normalized.metrics.mergedRelatedItems} related item(s), moved ${normalized.metrics.movedFixedIssues} fixed issue(s), removed ${normalized.metrics.removedStaleItems} stale item(s), removed ${normalized.metrics.removedContradictions} contradiction(s), cleaned ${normalized.metrics.cleanedDependencies} dependenc${normalized.metrics.cleanedDependencies === 1 ? "y" : "ies"}.`
+        ].join(" "),
         confidence: "medium"
       }
     });
@@ -536,7 +557,7 @@ export const contextService = {
     source: "mcp" | "manual"
   ) {
     await projectService.assertProjectOwner(userId, projectId);
-    const currentProjectContext = await this.getContext(userId, projectId, { rebuild: true });
+    const currentProjectContext = await prisma.projectContext.findUnique({ where: { projectId } }) ?? undefined;
     const analysis = manualContextAnalysisService.analyzeManualContextInput({
       rawText: input.rawText,
       source,

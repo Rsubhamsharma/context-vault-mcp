@@ -46,6 +46,14 @@ export const projectService = {
     return project;
   },
 
+  async deleteProject(userId: string, projectId: string) {
+    await projectService.assertProjectOwner(userId, projectId);
+    await prisma.project.delete({
+      where: { id: projectId }
+    });
+    return { success: true };
+  },
+
   async assertProjectOwner(userId: string, projectId: string) {
     const project = await prisma.project.findFirst({
       where: { id: projectId, userId },
