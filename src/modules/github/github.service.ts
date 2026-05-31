@@ -264,6 +264,37 @@ const safeChangedFiles = (value: unknown): GitHubChangedFile[] => {
   return files.slice(0, 50);
 };
 
+const changedFilesFromPushCommits = (commits: JsonObject[]): GitHubChangedFile[] => {
+  const files = new Map<string, GitHubChangedFile>();
+
+  for (const commit of commits) {
+    const groups: Array<[unknown, string]> = [
+      [commit.added, "added"],
+      [commit.modified, "modified"],
+      [commit.removed, "removed"]
+    ];
+
+    for (const [value, status] of groups) {
+      if (!Array.isArray(value)) {
+        continue;
+      }
+
+      for (const filename of value) {
+        if (typeof filename !== "string" || !filename.trim()) {
+          continue;
+        }
+
+        files.set(filename, {
+          filename,
+          status
+        });
+      }
+    }
+  }
+
+  return Array.from(files.values()).slice(0, 50);
+};
+
 const parseRepository = (payload: JsonObject): { owner: string; name: string; fullName: string; url?: string } => {
   const repository = asRecord(payload.repository);
   const owner = asRecord(repository.owner);
@@ -303,6 +334,7 @@ const parsePushEvent = (payload: JsonObject): ParsedGitHubEvent => {
   const authorObject = asRecord(headCommit.author);
   const author = stringValue(sender.login) ?? stringValue(authorObject.username) ?? stringValue(authorObject.name);
   const changedFiles = safeChangedFiles(payload.files);
+  const commitChangedFiles = changedFiles.length > 0 ? changedFiles : changedFilesFromPushCommits(commits);
 
   return {
     eventType: "push",
@@ -314,7 +346,7 @@ const parsePushEvent = (payload: JsonObject): ParsedGitHubEvent => {
     author,
     compareUrl: stringValue(payload.compare),
     commitMessages,
-    changedFiles,
+    changedFiles: commitChangedFiles,
     installationId: numberValue(installation.id)?.toString(),
     repositoryId: numberValue(repositoryObject.id)?.toString(),
     rawMetadata: {
@@ -327,7 +359,7 @@ const parsePushEvent = (payload: JsonObject): ParsedGitHubEvent => {
       branch,
       commitSha,
       commitMessages,
-      changedFiles,
+      changedFiles: commitChangedFiles,
       installationId: numberValue(installation.id)?.toString(),
       repositoryId: numberValue(repositoryObject.id)?.toString(),
       compareUrl: stringValue(payload.compare)

@@ -361,7 +361,9 @@ export const githubAnalysisService = {
     addDependencyHints(patch, text, evidence);
 
     if (patch.features.length === 0 && patch.architectureNotes.length === 0 && !isDocsOnly(evidence)) {
-      if (evidence.files.length > 0 && commitSubject) {
+      if (commitSubject && includesAny(text, ["feat:", "feature", "add ", "added ", "implement", "implemented", "introduce", "support", "enable"])) {
+        patch.features.push(`Updated project capability related to ${commitSubject}.`);
+      } else if (evidence.files.length > 0 && commitSubject) {
         patch.features.push(`Updated files related to ${commitSubject}.`);
       }
     }

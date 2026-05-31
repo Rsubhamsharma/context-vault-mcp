@@ -87,3 +87,14 @@ test("fixed bug commits do not add noisy fixed issue entries", () => {
   assert.deepEqual(result.suggestedPatch.issues, []);
   assert.doesNotMatch(patchText(result), /fixed issue indicated by github change|fixed or addressed issue/i);
 });
+
+test("feature push without changed-file metadata still creates a reviewable suggestion", () => {
+  const result = analyze(
+    ["feat: add project dashboard activity scroll"],
+    []
+  );
+
+  assert.match(result.suggestedPatch.features.join(" "), /project dashboard activity scroll/i);
+  assert.deepEqual(result.suggestedPatch.nextSteps, []);
+  assert.notEqual(result.confidence, "high");
+});
