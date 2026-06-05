@@ -9547,6 +9547,73 @@ textarea {
   overflow-x: clip;
 }
 
+.docsPagePublic {
+  width: min(calc(100% - 32px), 1240px);
+  padding: 22px 0 72px;
+}
+
+.docsPublicNav {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 44%, transparent);
+}
+
+.docsPublicBrand,
+.docsPublicNav a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.docsPublicBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.docsPublicBrand span {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, rgba(125,211,252,0.96), rgba(52,211,153,0.88)),
+    var(--surface-strong);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset, 0 10px 24px rgba(45,212,191,0.16);
+}
+
+.docsPublicNav div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.docsPublicNav div a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.docsPublicNav div a:hover {
+  color: var(--text-primary);
+  background: rgba(148,163,184,0.09);
+}
+
+.docsPublicNav div .docsPublicCta {
+  border: 1px solid rgba(125,211,252,0.34);
+  background: rgba(125,211,252,0.12);
+  color: var(--text-primary);
+}
+
 .docsPageHeader h1 {
   margin: 0;
   font-family: var(--font-heading);
@@ -9981,6 +10048,17 @@ textarea {
 }
 
 @media (max-width: 430px) {
+  .docsPagePublic {
+    width: min(calc(100% - 24px), 1240px);
+    padding-top: 14px;
+  }
+
+  .docsPublicNav {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-bottom: 14px;
+  }
+
   .docsPageHeader h1 {
     font-size: 1.75rem;
   }

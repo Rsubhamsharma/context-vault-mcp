@@ -116,7 +116,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/" element={<LandingPage />} />
         <Route path="/mcp" element={<ProjectDeepLink target="mcp" />} />
         <Route path="/github" element={<ProjectDeepLink target="github" />} />
-        <Route path="/docs" element={<ProjectDeepLink target="docs" />} />
+        <Route path="/docs" element={<DocsPage publicView />} />
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/projects" element={<ProjectsPage />} />

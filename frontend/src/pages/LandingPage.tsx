@@ -14,6 +14,7 @@ const navLinks: LandingNavLink[] = [
   { href: "#workflow", label: "Workflow" },
   { href: "#mcp", label: "MCP" },
   { href: "#github", label: "GitHub" },
+  { href: "/docs", label: "Docs", route: true },
   { href: "#safety", label: "Safety" }
 ];
 
@@ -111,7 +112,7 @@ function RevealOnScroll({ children, className = "", delay = 0 }: { children: Rea
 function LandingNavbar() {
   const [open, setOpen] = useState(false);
   const signedIn = Boolean(authStore.getToken());
-  const visibleNavLinks = signedIn ? [...navLinks, { href: "/docs", label: "Docs", route: true }] : navLinks;
+  const visibleNavLinks = navLinks;
 
   useEffect(() => {
     const onResize = () => {

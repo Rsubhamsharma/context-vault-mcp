@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 type DocsSection = {
   id: string;
@@ -426,7 +427,7 @@ function DocsToc({ activeId, onNavigate }: { activeId: string; onNavigate: (id: 
   );
 }
 
-export function DocsPage() {
+export function DocsPage({ publicView = false }: { publicView?: boolean }) {
   const [activeId, setActiveId] = useState("overview");
   const activeIdRef = useRef(activeId);
 
@@ -501,11 +502,23 @@ export function DocsPage() {
   }, []);
 
   return (
-    <section className="docsPage">
+    <section className={publicView ? "docsPage docsPagePublic" : "docsPage"}>
+      {publicView && (
+        <nav className="docsPublicNav" aria-label="Public documentation navigation">
+          <Link className="docsPublicBrand" to="/">
+            <span aria-hidden="true" />
+            Context Vault
+          </Link>
+          <div>
+            <Link to="/login">Sign in</Link>
+            <Link className="docsPublicCta" to="/signup">Get started</Link>
+          </div>
+        </nav>
+      )}
       <header className="docsPageHeader">
         <h1>Docs</h1>
         <p>Learn how Context Vault stores AI-readable project memory and connects it to your AI tools.</p>
-        <div><span>MCP-first</span><span>Review-first</span><span>Versioned memory</span></div>
+        <div><span>MCP-first</span><span>Review-first</span><span>Versioned memory</span><span>Secret-safe examples</span></div>
       </header>
       <div className="docsLayoutShell">
         <DocsSidebar activeId={activeId} onNavigate={navigate} />
